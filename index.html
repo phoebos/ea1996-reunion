@@ -1,0 +1,1514 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EA 1996 - 30 ans du Bac</title>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Badge flottant pour toggle mode rétro */
+    .retro-toggle-badge {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      padding: 12px 24px;
+      background: linear-gradient(135deg, #ff6b6b, #ee5a6f);
+      border: 3px solid gold;
+      border-radius: 8px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+      z-index: 9999;
+      transition: transform 0.2s;
+      animation: pulse 2s infinite;
+    }
+    
+    .retro-toggle-badge:hover {
+      transform: scale(1.05);
+    }
+    
+    @keyframes pulse {
+      0%, 100% { box-shadow: 0 4px 15px rgba(255,107,107,0.4); }
+      50% { box-shadow: 0 4px 25px rgba(255,107,107,0.8); }
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+
+    // Configuration Supabase
+    const SUPABASE_URL = 'https://rtzrapghevhpdfriesnq.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0enJhcGdoZXZocGRmcmllc25xIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzAxOTk2ODAsImV4cCI6MjA4NTc3NTY4MH0.WTqUvYljrlOEobdQ_3MW_EJulc8tUB0E-wXkAK-eixw';
+
+    // Icônes SVG
+    const PlusIcon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+        <line x1="5" y1="12" x2="19" y2="12"></line>
+      </svg>
+    );
+
+    const Trash2Icon = () => (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polyline points="3 6 5 6 21 6"></polyline>
+        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+        <line x1="10" y1="11" x2="10" y2="17"></line>
+        <line x1="14" y1="11" x2="14" y2="17"></line>
+      </svg>
+    );
+
+    const MailIcon = ({ size = 16 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+        <polyline points="22,6 12,13 2,6"></polyline>
+      </svg>
+    );
+
+    const PhoneIcon = ({ size = 16 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+      </svg>
+    );
+
+    const Edit2Icon = ({ size = 14 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path>
+      </svg>
+    );
+
+    const UsersIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+        <circle cx="9" cy="7" r="4"></circle>
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+      </svg>
+    );
+
+    const StarIcon = ({ size = 16, filled = false }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+      </svg>
+    );
+
+    const TrophyIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"></path>
+        <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"></path>
+        <path d="M4 22h16"></path>
+        <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"></path>
+        <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"></path>
+        <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"></path>
+      </svg>
+    );
+
+    const SearchIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="8"></circle>
+        <path d="m21 21-4.35-4.35"></path>
+      </svg>
+    );
+
+    const DownloadIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+    );
+
+    const LockIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+      </svg>
+    );
+
+    const UnlockIcon = ({ size = 18 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+        <path d="M7 11V7a5 5 0 0 1 9.9-1"></path>
+      </svg>
+    );
+
+    const AlertCircleIcon = ({ size = 20 }) => (
+      <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="12" y1="8" x2="12" y2="12"></line>
+        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+      </svg>
+    );
+
+    // Helper pour les requêtes Supabase
+    async function supabaseRequest(endpoint, method = 'GET', body = null) {
+      const options = {
+        method,
+        headers: {
+          'apikey': SUPABASE_ANON_KEY,
+          'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=representation'
+        }
+      };
+      
+      if (body) {
+        options.body = JSON.stringify(body);
+      }
+      
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${endpoint}`, options);
+      
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(error);
+      }
+      
+      return response.json();
+    }
+
+    function ContactForm() {
+      // États
+      const [contacts, setContacts] = useState([
+        { id: 1, firstName: '', lastName: '', maidenName: '', email: '', phone: '', emailTouched: false }
+      ]);
+      const [savedContacts, setSavedContacts] = useState([]);
+      const [loading, setLoading] = useState(true);
+      const [editingContact, setEditingContact] = useState(null);
+      const [editingField, setEditingField] = useState(null);
+      const [revealedContacts, setRevealedContacts] = useState(new Set());
+      const [searchTerm, setSearchTerm] = useState('');
+      const [showForm, setShowForm] = useState(false);
+      const [showList, setShowList] = useState(true);
+      const [isAdmin, setIsAdmin] = useState(false);
+      const [showAdminModal, setShowAdminModal] = useState(false);
+      const [adminPassword, setAdminPassword] = useState('');
+      const [currentUserEmail, setCurrentUserEmail] = useState('');
+      const [showLeaderboard, setShowLeaderboard] = useState(false);
+      const [showIdentificationBanner, setShowIdentificationBanner] = useState(() => {
+        // Ne pas afficher si déjà fermée dans cette session ou si déjà identifié
+        return !sessionStorage.getItem('bannerDismissed') && !currentUserEmail;
+      });
+      const [isRetroMode, setIsRetroMode] = useState(() => {
+        // Charger la préférence depuis localStorage
+        return localStorage.getItem('retroMode') === 'true';
+      });
+
+      // Appliquer/retirer la classe retro-mode sur le body et charger le CSS
+      useEffect(() => {
+        if (isRetroMode) {
+          document.body.classList.add('retro-mode');
+          localStorage.setItem('retroMode', 'true');
+          
+          // Charger le CSS rétro si pas déjà chargé
+          if (!document.getElementById('retro-css')) {
+            const link = document.createElement('link');
+            link.id = 'retro-css';
+            link.rel = 'stylesheet';
+            link.href = './style-retro-1996.css';
+            document.head.appendChild(link);
+          }
+        } else {
+          document.body.classList.remove('retro-mode');
+          localStorage.setItem('retroMode', 'false');
+          
+          // Optionnel : retirer le CSS (pour économiser les ressources)
+          // const retroCss = document.getElementById('retro-css');
+          // if (retroCss) retroCss.remove();
+        }
+      }, [isRetroMode]);
+
+      const toggleRetroMode = () => {
+        setIsRetroMode(!isRetroMode);
+      };
+
+      // Charger les contacts depuis Supabase au démarrage
+      useEffect(() => {
+        loadContacts();
+      }, []);
+
+      async function loadContacts() {
+        try {
+          setLoading(true);
+          const data = await supabaseRequest('contacts?select=*&order=last_name.asc,first_name.asc');
+          
+          // Convertir les données Supabase au format attendu par le composant
+          const formattedContacts = data.map(contact => ({
+            id: contact.id,
+            firstName: contact.first_name,
+            lastName: contact.last_name,
+            maidenName: contact.maiden_name || '',
+            email: contact.email || '',
+            phone: contact.phone || '',
+            emailVerified: contact.email_verified || false,
+            addedBy: contact.added_by || '',
+            likesCount: contact.likes_count || 0,
+            likedBy: contact.liked_by || []
+          }));
+          
+          setSavedContacts(formattedContacts);
+        } catch (error) {
+          console.error('Erreur de chargement:', error);
+          alert('Erreur lors du chargement des contacts');
+        } finally {
+          setLoading(false);
+        }
+      }
+
+      const TARGET_ALUMNI = 200;
+      const currentAlumni = savedContacts.length;
+      const alumniProgress = (currentAlumni / TARGET_ALUMNI) * 100;
+
+      const calculateQuality = () => {
+        let totalScore = 0;
+        savedContacts.forEach(contact => {
+          let score = 0;
+          if (contact.email) score += 50;
+          if (contact.phone) score += 50;
+          totalScore += score;
+        });
+        return savedContacts.length > 0 ? totalScore / savedContacts.length : 0;
+      };
+
+      const qualityProgress = calculateQuality();
+
+      const getProgressColor = (progress) => {
+        if (progress < 33) return 'bg-red-500';
+        if (progress < 66) return 'bg-yellow-500';
+        return 'bg-green-500';
+      };
+
+      const handleAdminLogin = () => {
+        if (adminPassword === 'Rosebud') {
+          setIsAdmin(true);
+          setShowAdminModal(false);
+          setAdminPassword('');
+        } else {
+          alert('Mot de passe incorrect');
+          setAdminPassword('');
+        }
+      };
+
+      const handleAdminLogout = () => {
+        setIsAdmin(false);
+        setRevealedContacts(new Set());
+      };
+
+      const exportToCSV = () => {
+        const headers = ['Prénom', 'Nom', 'Nom de jeune fille', 'Email', 'Téléphone', 'Email vérifié'];
+        const rows = savedContacts.map(contact => [
+          contact.firstName,
+          contact.lastName,
+          contact.maidenName || '',
+          contact.email || '',
+          contact.phone || '',
+          contact.emailVerified ? 'Oui' : 'Non'
+        ]);
+        
+        const csvContent = [
+          headers.join(','),
+          ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+        ].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = 'contacts_ea_1996.csv';
+        link.click();
+      };
+
+      const handleCSVImport = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+          try {
+            const text = e.target.result;
+            const lines = text.split('\n').filter(line => line.trim());
+            
+            // Ignorer la première ligne (header)
+            const dataLines = lines.slice(1);
+            
+            const contactsToImport = [];
+            let errors = [];
+            
+            dataLines.forEach((line, index) => {
+              // Parser le CSV en gérant les guillemets
+              const matches = line.match(/(".*?"|[^,]+)(?=\s*,|\s*$)/g);
+              if (!matches || matches.length < 2) {
+                errors.push(`Ligne ${index + 2}: Format invalide`);
+                return;
+              }
+              
+              const cleanValue = (val) => val ? val.replace(/^"|"$/g, '').trim() : '';
+              
+              const firstName = cleanValue(matches[0]);
+              const lastName = cleanValue(matches[1]);
+              const maidenName = matches[2] ? cleanValue(matches[2]) : '';
+              const email = matches[3] ? cleanValue(matches[3]) : '';
+              const phone = matches[4] ? cleanValue(matches[4]) : '';
+              
+              if (!firstName || !lastName) {
+                errors.push(`Ligne ${index + 2}: Prénom et nom requis`);
+                return;
+              }
+              
+              // Validation email si présent
+              if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                errors.push(`Ligne ${index + 2}: Email invalide (${email})`);
+                return;
+              }
+              
+              contactsToImport.push({
+                first_name: firstName,
+                last_name: lastName,
+                maiden_name: maidenName || null,
+                email: email || null,
+                phone: phone || null,
+                email_verified: false,
+                added_by: currentUserEmail || 'Import CSV Admin'
+              });
+            });
+            
+            if (errors.length > 0) {
+              const continueImport = confirm(
+                `${errors.length} erreur(s) détectée(s):\n\n${errors.slice(0, 5).join('\n')}${errors.length > 5 ? '\n...' : ''}\n\nContinuer l'import des contacts valides (${contactsToImport.length}) ?`
+              );
+              if (!continueImport) return;
+            }
+            
+            if (contactsToImport.length === 0) {
+              alert('Aucun contact valide à importer.');
+              return;
+            }
+            
+            // Confirmation avant import
+            const confirm_import = confirm(
+              `Vous allez importer ${contactsToImport.length} contact(s).\n\nContinuer ?`
+            );
+            
+            if (!confirm_import) return;
+            
+            // Import vers Supabase
+            await supabaseRequest('contacts', 'POST', contactsToImport);
+            
+            // Recharger les contacts
+            await loadContacts();
+            
+            alert(`✅ Import réussi !\n\n${contactsToImport.length} contact(s) ajouté(s).`);
+            
+            // Reset le input file
+            event.target.value = '';
+            
+          } catch (error) {
+            console.error('Erreur import CSV:', error);
+            alert('❌ Erreur lors de l\'import du fichier CSV.\n\nVérifiez le format du fichier.');
+          }
+        };
+        
+        reader.readAsText(file, 'UTF-8');
+      };
+
+      const addContact = () => {
+        const newId = Math.max(...contacts.map(c => c.id), 0) + 1;
+        setContacts([...contacts, { id: newId, firstName: '', lastName: '', maidenName: '', email: '', phone: '', emailTouched: false }]);
+      };
+
+      const removeContact = (id) => {
+        if (contacts.length > 1) {
+          setContacts(contacts.filter(c => c.id !== id));
+        }
+      };
+
+      const updateContact = (id, field, value) => {
+        setContacts(contacts.map(c => {
+          if (c.id === id) {
+            const updated = { ...c, [field]: value };
+            if (field === 'email') {
+              updated.emailTouched = true;
+            }
+            if (field === 'phone' && value.startsWith('+33')) {
+              updated.phone = '0' + value.substring(3).replace(/\s/g, '');
+            }
+            return updated;
+          }
+          return c;
+        }));
+      };
+
+      const validateEmail = (email) => {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+      };
+
+      const normalizeString = (str) => {
+        return str
+          .toLowerCase()
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .replace(/\s+/g, '');
+      };
+
+      async function saveContacts() {
+        const invalidContacts = contacts.filter(c => 
+          !c.firstName.trim() || !c.lastName.trim() || 
+          (c.emailTouched && c.email && !validateEmail(c.email))
+        );
+        
+        if (invalidContacts.length > 0) {
+          alert('Veuillez remplir au moins le prénom et le nom pour chaque contact, et vérifier les emails invalides.');
+          return;
+        }
+        
+        // Récupérer le premier contact (celui qui ajoute)
+        const firstContact = contacts[0];
+        const userFirstName = firstContact.firstName.trim();
+        const userLastName = firstContact.lastName.trim();
+        
+        try {
+          // Vérifier si l'utilisateur existe déjà dans la base
+          const existingUser = savedContacts.find(c => 
+            normalizeString(c.firstName) === normalizeString(userFirstName) &&
+            normalizeString(c.lastName) === normalizeString(userLastName)
+          );
+          
+          if (existingUser && contacts.length === 1) {
+            // L'utilisateur essaie de s'ajouter lui-même mais existe déjà
+            alert('❌ Vous êtes déjà inscrit dans la liste.\n\nVérifiez vos coordonnées ci-dessous.');
+            setShowForm(false);
+            // Scroll vers le tableau
+            setTimeout(() => {
+              const searchInput = document.querySelector('input[placeholder="Rechercher..."]');
+              if (searchInput) {
+                searchInput.value = userFirstName + ' ' + userLastName;
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }, 100);
+            return;
+          }
+          
+          // Utiliser le nom complet de l'utilisateur pour le leaderboard
+          const addedBy = `${userFirstName} ${userLastName}`;
+          setCurrentUserEmail(addedBy); // On stocke le nom au lieu de l'email
+          
+          // Insérer les nouveaux contacts dans Supabase
+          const contactsToInsert = contacts.map(c => ({
+            first_name: c.firstName.trim(),
+            last_name: c.lastName.trim(),
+            maiden_name: c.maidenName?.trim() || null,
+            email: c.email?.trim() || null,
+            phone: c.phone?.trim() || null,
+            email_verified: false,
+            added_by: addedBy
+          }));
+          
+          await supabaseRequest('contacts', 'POST', contactsToInsert);
+          
+          // Recharger les contacts
+          await loadContacts();
+          
+          // Réinitialiser le formulaire
+          setContacts([{ id: 1, firstName: '', lastName: '', maidenName: '', email: '', phone: '', emailTouched: false }]);
+          setShowForm(false);
+          
+          alert('✅ Contacts ajoutés avec succès !');
+        } catch (error) {
+          console.error('Erreur lors de l\'enregistrement:', error);
+          alert('Erreur lors de l\'enregistrement des contacts');
+        }
+      }
+
+      async function identifyUser() {
+        // Si déjà identifié dans cette session, retourner le nom
+        if (currentUserEmail) {
+          return currentUserEmail;
+        }
+        
+        // Demander le prénom
+        const firstName = prompt('Pour informer la personne et vous créditer au leaderboard, quel est votre prénom ?\n\n(Laissez vide pour continuer sans vous identifier)');
+        if (!firstName) {
+          // L'utilisateur veut continuer sans s'identifier
+          return 'Non identifié';
+        }
+        
+        const normalizedInput = normalizeString(firstName.trim());
+        
+        // Chercher dans la base
+        const matches = savedContacts.filter(c => 
+          normalizeString(c.firstName).includes(normalizedInput)
+        );
+        
+        if (matches.length === 0) {
+          const choice = confirm(
+            `❌ Nous ne trouvons pas "${firstName}" dans la liste.\n\n` +
+            `Cliquez OK pour continuer quand même et contribuer en tant que "${firstName}"\n` +
+            `Cliquez Annuler pour vous inscrire d'abord`
+          );
+          
+          if (choice) {
+            // L'utilisateur veut continuer quand même
+            setCurrentUserEmail(firstName);
+            return firstName;
+          } else {
+            // L'utilisateur veut s'inscrire d'abord
+            setShowForm(true);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            return null;
+          }
+        }
+        
+        if (matches.length === 1) {
+          // Un seul match trouvé
+          const fullName = `${matches[0].firstName} ${matches[0].lastName}`;
+          const confirmed = confirm(`C'est bien vous ?\n\n${fullName}`);
+          if (confirmed) {
+            setCurrentUserEmail(fullName);
+            setShowIdentificationBanner(false);
+            return fullName;
+          }
+          return null;
+        }
+        
+        // Plusieurs matches
+        const options = matches.map((c, i) => `${i+1}. ${c.firstName} ${c.lastName}`).join('\n');
+        const choice = prompt(`Plusieurs "${firstName}" trouvés. Entrez le numéro correspondant :\n\n${options}`);
+        
+        const index = parseInt(choice) - 1;
+        if (index >= 0 && index < matches.length) {
+          const fullName = `${matches[index].firstName} ${matches[index].lastName}`;
+          setCurrentUserEmail(fullName);
+          setShowIdentificationBanner(false);
+          return fullName;
+        }
+        
+        return null;
+      }
+
+      const dismissBanner = () => {
+        setShowIdentificationBanner(false);
+        sessionStorage.setItem('bannerDismissed', 'true');
+      };
+
+      const handleIdentifyFromBanner = async () => {
+        const userName = await identifyUser();
+        if (userName && userName !== 'Non identifié') {
+          setShowIdentificationBanner(false);
+        }
+      };
+
+      async function updateSavedContact(contactId, field, value, contributor = null) {
+        try {
+          const updateData = {};
+          
+          if (field === 'firstName') updateData.first_name = value;
+          if (field === 'lastName') updateData.last_name = value;
+          if (field === 'maidenName') updateData.maiden_name = value || null;
+          if (field === 'email') updateData.email = value || null;
+          if (field === 'phone') {
+            // Nettoyer et valider le numéro avant de l'envoyer
+            updateData.phone = cleanPhoneNumber(value);
+          }
+          
+          // Si un contributeur est fourni ET qu'il n'est pas "Non identifié", on met à jour le added_by
+          if (contributor && contributor !== 'Non identifié' && (field === 'email' || field === 'phone')) {
+            updateData.added_by = contributor;
+          }
+          
+          await supabaseRequest(`contacts?id=eq.${contactId}`, 'PATCH', updateData);
+          
+          // Mettre à jour localement
+          setSavedContacts(savedContacts.map(c =>
+            c.id === contactId ? { 
+              ...c, 
+              [field]: value,
+              ...(contributor && contributor !== 'Non identifié' && (field === 'email' || field === 'phone') ? { addedBy: contributor } : {})
+            } : c
+          ));
+        } catch (error) {
+          console.error('Erreur de mise à jour:', error);
+          alert('Erreur lors de la mise à jour');
+        }
+      }
+
+      const saveEdit = (id) => {
+        setEditingContact(null);
+        setEditingField(null);
+      };
+
+      const handleLike = async (contactId) => {
+        // Vérifier que l'utilisateur est identifié
+        if (!currentUserEmail) {
+          alert("Vous devez vous identifier pour utiliser cette fonctionnalité.");
+          return;
+        }
+
+        // Trouver le contact
+        const contact = savedContacts.find(c => c.id === contactId);
+        if (!contact) return;
+
+        // Vérifier qu'on ne se like pas soi-même
+        const myFullName = currentUserEmail;
+        const contactFullName = `${contact.firstName} ${contact.lastName}`;
+        if (myFullName === contactFullName) {
+          alert("Vous ne pouvez pas vous envoyer de cœur à vous-même ! 😊");
+          return;
+        }
+
+        // Vérifier si déjà liké
+        const likedBy = contact.likedBy || [];
+        if (likedBy.includes(myFullName)) {
+          alert("Vous avez déjà envoyé votre hâte de revoir cette personne ! 💜");
+          return;
+        }
+
+        try {
+          // Mettre à jour dans Supabase
+          const newLikedBy = [...likedBy, myFullName];
+          const newCount = newLikedBy.length;
+
+          await supabaseRequest(`contacts?id=eq.${contactId}`, 'PATCH', {
+            likes_count: newCount,
+            liked_by: newLikedBy
+          });
+
+          // Mettre à jour localement
+          setSavedContacts(savedContacts.map(c =>
+            c.id === contactId ? {
+              ...c,
+              likesCount: newCount,
+              likedBy: newLikedBy
+            } : c
+          ));
+
+          // Animation de succès
+          alert("💜 Votre message a été envoyé !");
+        } catch (error) {
+          console.error('Erreur lors du like:', error);
+          alert('Erreur lors de l\'envoi');
+        }
+      };
+
+      const toggleReveal = (contactId) => {
+        if (!isAdmin) {
+          alert("Seuls les administrateurs peuvent voir les coordonnées complètes.");
+          return;
+        }
+        
+        const newRevealed = new Set(revealedContacts);
+        if (newRevealed.has(contactId)) {
+          newRevealed.delete(contactId);
+        } else {
+          newRevealed.add(contactId);
+        }
+        setRevealedContacts(newRevealed);
+      };
+
+      const maskEmail = (email) => {
+        if (!email) return '';
+        const [local, domain] = email.split('@');
+        if (local.length <= 2) return email;
+        return local[0] + '***' + local[local.length - 1] + '@' + domain;
+      };
+
+      const maskPhone = (phone) => {
+        if (!phone) return '';
+        // Nettoyer le numéro (enlever espaces, tirets, etc.)
+        const cleaned = phone.replace(/\s+/g, '').replace(/-/g, '');
+        if (cleaned.length <= 4) return cleaned;
+        
+        // Pour les numéros français (10 chiffres commençant par 0)
+        if (cleaned.length === 10 && cleaned.startsWith('0')) {
+          return cleaned.substring(0, 2) + '***' + cleaned.substring(cleaned.length - 2);
+        }
+        
+        // Pour les autres formats
+        return cleaned.substring(0, 2) + '***' + cleaned.substring(cleaned.length - 2);
+      };
+
+      // Nettoyer et valider un numéro de téléphone
+      const cleanPhoneNumber = (phone) => {
+        if (!phone) return null;
+        
+        // Convertir en string et nettoyer
+        let cleaned = String(phone).trim().replace(/[\s\.\-\(\)]/g, '');
+        
+        // Si le numéro commence par un chiffre autre que 0, ajouter le 0
+        if (cleaned.length === 9 && /^[67]/.test(cleaned)) {
+          cleaned = '0' + cleaned;
+        }
+        
+        // Validation pour numéro français (10 chiffres commençant par 0)
+        if (cleaned.length === 10 && cleaned.startsWith('0')) {
+          return cleaned;
+        }
+        
+        // Si pas au bon format, retourner tel quel (l'utilisateur sera averti)
+        return cleaned || null;
+      };
+
+      const filteredContacts = savedContacts.filter(contact => {
+        const searchLower = normalizeString(searchTerm);
+        return (
+          normalizeString(contact.firstName).includes(searchLower) ||
+          normalizeString(contact.lastName).includes(searchLower) ||
+          (contact.maidenName && normalizeString(contact.maidenName).includes(searchLower))
+        );
+      });
+
+      const getLeaderboard = () => {
+        const contributorsMap = {};
+        
+        savedContacts.forEach(contact => {
+          if (!contact.addedBy) return;
+          
+          if (!contributorsMap[contact.addedBy]) {
+            contributorsMap[contact.addedBy] = {
+              email: contact.addedBy,
+              points: 0,
+              contactsAdded: 0,
+              completeProfiles: 0
+            };
+          }
+          
+          contributorsMap[contact.addedBy].contactsAdded++;
+          
+          const isComplete = contact.email && contact.phone;
+          if (isComplete) {
+            contributorsMap[contact.addedBy].points += 25;
+            contributorsMap[contact.addedBy].completeProfiles++;
+          } else {
+            contributorsMap[contact.addedBy].points += 10;
+          }
+        });
+        
+        return Object.values(contributorsMap).sort((a, b) => b.points - a.points);
+      };
+
+      const leaderboard = getLeaderboard();
+
+      if (loading) {
+        return (
+          <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
+              <p className="mt-4 text-gray-600">Chargement...</p>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+          <div className="max-w-6xl mx-auto p-4 sm:p-6">
+            {/* Header avec bannière */}
+            <div className="bg-white rounded-2xl shadow-xl mb-6 overflow-hidden">
+              <div className="relative h-64 sm:h-80 overflow-hidden">
+                {/* Image de fond - Banc de Pablo Reinoso */}
+                <img 
+                  src="./images/banc.jpg" 
+                  alt="École Alsacienne - Banc de Pablo Reinoso"
+                  className="absolute inset-0 w-full h-full object-cover"
+                  style={{ objectPosition: 'center 40%' }}
+                />
+                
+                {/* Overlay sombre pour lisibilité */}
+                <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70"></div>
+                
+                {/* Overlay décoratif subtil */}
+                <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/30 via-transparent to-blue-900/30"></div>
+                
+                {/* Contenu texte */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white px-4">
+                    <div className="mb-3">
+                      <div className="inline-block px-4 py-1 bg-white/10 backdrop-blur-sm rounded-full border border-white/20 mb-4">
+                        <span className="text-sm font-medium">1996 - 2026</span>
+                      </div>
+                    </div>
+                    <h1 className="text-5xl sm:text-7xl font-bold mb-3 drop-shadow-2xl tracking-tight">
+                      École Alsacienne
+                    </h1>
+                    <p className="text-2xl sm:text-4xl font-light drop-shadow-lg mb-4 tracking-wide">
+                      Promotion 1996
+                    </p>
+                    <div className="flex items-center justify-center gap-3 mt-6">
+                      <div className="h-px w-12 bg-gradient-to-r from-transparent to-white/50"></div>
+                      <div className="text-xl sm:text-2xl font-semibold px-4 py-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/30">
+                        🎓 30 ans du Bac
+                      </div>
+                      <div className="h-px w-12 bg-gradient-to-l from-transparent to-white/50"></div>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Effet de vignette sur les bords */}
+                <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.3)]"></div>
+              </div>
+
+              <div className="p-6">
+                {/* GROS CTA WhatsApp - Objectif primaire */}
+                <div className="mb-6 bg-gradient-to-r from-green-500 to-green-600 rounded-2xl p-6 shadow-2xl transform hover:scale-[1.02] transition-all">
+                  <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="text-white flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <svg className="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                        </svg>
+                        <h2 className="text-2xl sm:text-3xl font-bold">Rejoignez le groupe WhatsApp !</h2>
+                      </div>
+                      <p className="text-green-50 text-sm sm:text-base">
+                        Restez connectés avec la promo 1996 • Organisation de la soirée • Souvenirs et discussions
+                      </p>
+                    </div>
+                    <a
+                      href="https://chat.whatsapp.com/Fxlg8G6gA5gEOtLAA6c8ah"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-3 px-8 py-4 bg-white text-green-600 rounded-xl hover:bg-green-50 transition-all shadow-lg hover:shadow-xl text-lg font-bold whitespace-nowrap transform hover:scale-105"
+                    >
+                      <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
+                      </svg>
+                      REJOINDRE
+                    </a>
+                  </div>
+                </div>
+
+                {/* Boutons secondaires */}
+                <div className="flex flex-wrap gap-3 mb-6">
+                  <button
+                    onClick={() => setShowForm(!showForm)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
+                  >
+                    <PlusIcon />
+                    {showForm ? 'Annuler' : 'Ajouter mes coordonnées'}
+                  </button>
+
+                  <button
+                    onClick={() => setShowList(!showList)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
+                  >
+                    <UsersIcon />
+                    {showList ? 'Masquer la liste' : 'Voir contacts'} ({savedContacts.length})
+                  </button>
+
+                  <button
+                    onClick={() => setShowLeaderboard(!showLeaderboard)}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
+                  >
+                    <TrophyIcon />
+                    Leaderboard
+                  </button>
+
+                  {isAdmin ? (
+                    <>
+                      <button
+                        onClick={exportToCSV}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
+                      >
+                        <DownloadIcon />
+                        Export CSV
+                      </button>
+                      <label className="flex items-center gap-2 px-5 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap cursor-pointer">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                          <polyline points="17 8 12 3 7 8"></polyline>
+                          <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        Import CSV
+                        <input
+                          type="file"
+                          accept=".csv"
+                          onChange={handleCSVImport}
+                          className="hidden"
+                        />
+                      </label>
+                      <button
+                        onClick={handleAdminLogout}
+                        className="flex items-center gap-2 px-5 py-2.5 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
+                      >
+                        <UnlockIcon />
+                        Déconnexion Admin
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => setShowAdminModal(true)}
+                      className="flex items-center gap-2 px-5 py-2.5 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
+                    >
+                      <LockIcon />
+                      Admin
+                    </button>
+                  )}
+                </div>
+
+                {/* Message d'introduction */}
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                  <p className="text-gray-700 leading-relaxed">
+                    Pour les 30 ans du Bac de 1996 de l'École Alsacienne, nous nous proposons d'organiser une soirée de retrouvailles en juin ou en septembre 2026. Pour être le plus nombreux possible, nous vous demandons de nous aider à renseigner au mieux notre promo avec vos coordonnées (mail + tel) ET ceux dont vous êtes les plus proches.
+                  </p>
+                </div>
+
+                {/* Bannière d'identification */}
+                {showIdentificationBanner && !currentUserEmail && (
+                  <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4 mb-6 shadow-sm">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="text-2xl">👋</span>
+                          <h3 className="font-semibold text-gray-800">Bonjour !</h3>
+                        </div>
+                        <p className="text-gray-700 text-sm mb-3">
+                          Identifiez-vous pour être crédité de vos contributions au leaderboard et envoyer des petits cœurs à vos anciens camarades
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            onClick={handleIdentifyFromBanner}
+                            className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors text-sm font-medium"
+                          >
+                            Je suis...
+                          </button>
+                          <button
+                            onClick={dismissBanner}
+                            className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm font-medium"
+                          >
+                            Continuer sans s'identifier
+                          </button>
+                        </div>
+                      </div>
+                      <button
+                        onClick={dismissBanner}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                        aria-label="Fermer"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Barres de progression */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 rounded-lg p-6 border border-indigo-200">
+                    <div className="flex items-center gap-3 mb-3">
+                      <UsersIcon size={24} />
+                      <h3 className="font-semibold text-gray-800">Anciens élèves renseignés</h3>
+                    </div>
+                    <div className="mb-2">
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>{currentAlumni} / {TARGET_ALUMNI}</span>
+                        <span>{alumniProgress.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-4">
+                        <div 
+                          className={`h-4 rounded-full transition-all duration-500 ${getProgressColor(alumniProgress)}`}
+                          style={{ width: `${Math.min(alumniProgress, 100)}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">Objectif : 200 anciens élèves de la promo</p>
+                  </div>
+
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-lg p-6 border border-emerald-200">
+                    <div className="flex items-center gap-3 mb-3">
+                      <StarIcon size={24} />
+                      <h3 className="font-semibold text-gray-800">Qualité des coordonnées</h3>
+                    </div>
+                    <div className="mb-2">
+                      <div className="flex justify-between text-sm text-gray-600 mb-1">
+                        <span>Score global</span>
+                        <span>{qualityProgress.toFixed(1)}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-4">
+                        <div 
+                          className={`h-4 rounded-full transition-all duration-500 ${getProgressColor(qualityProgress)}`}
+                          style={{ width: `${qualityProgress}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-2">Email + Téléphone = 100% | Email ou Téléphone = 50%</p>
+                  </div>
+                </div>
+
+                {/* Formulaire d'ajout */}
+                {showForm && (
+                  <div className="mb-8 bg-indigo-50 rounded-lg p-6 border-2 border-indigo-200">
+                    <h2 className="text-2xl font-semibold text-gray-800 mb-4">Ajouter des contacts</h2>
+                    
+                    {/* Disclaimer RGPD */}
+                    <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                      <div className="flex items-start">
+                        <AlertCircleIcon />
+                        <div className="ml-3 text-sm text-gray-700">
+                          <p className="font-semibold mb-2">Protection de vos données personnelles</p>
+                          <p className="mb-2">
+                            Conformément au RGPD, en renseignant vos coordonnées ou celles de vos camarades, vous acceptez que ces informations soient utilisées uniquement dans le cadre de l'organisation des retrouvailles de la promo 1996 de l'École Alsacienne.
+                          </p>
+                          <p className="mb-2">
+                            Un email de confirmation sera envoyé à chaque adresse renseignée pour valider le consentement. Vous pouvez à tout moment demander la modification ou la suppression de vos données en contactant : <a href="mailto:orga@ea1996.fr" className="text-blue-600 hover:underline font-medium">orga@ea1996.fr</a>
+                          </p>
+                          <p className="text-xs text-gray-600 mt-2">
+                            Vos coordonnées ne seront jamais communiquées à des tiers et seront supprimées après l'événement.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {contacts.map((contact, index) => (
+                      <div key={contact.id} className="mb-6 pb-6 border-b border-indigo-200 last:border-0">
+                        <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-lg font-semibold text-gray-700">
+                            {index === 0 ? 'Mes coordonnées' : `Proche #${index}`}
+                          </h3>
+                          {contacts.length > 1 && (
+                            <button
+                              onClick={() => removeContact(contact.id)}
+                              className="text-red-600 hover:text-red-800 p-2 hover:bg-red-50 rounded-lg transition-colors"
+                            >
+                              <Trash2Icon />
+                            </button>
+                          )}
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Prénom <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.firstName}
+                              onChange={(e) => updateContact(contact.id, 'firstName', e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Prénom"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Nom <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.lastName}
+                              onChange={(e) => updateContact(contact.id, 'lastName', e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Nom"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Nom de jeune fille
+                            </label>
+                            <input
+                              type="text"
+                              value={contact.maidenName}
+                              onChange={(e) => updateContact(contact.id, 'maidenName', e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="Nom de jeune fille (optionnel)"
+                            />
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input
+                              type="email"
+                              value={contact.email}
+                              onChange={(e) => updateContact(contact.id, 'email', e.target.value)}
+                              className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
+                                contact.emailTouched && contact.email && !validateEmail(contact.email)
+                                  ? 'border-red-500 bg-red-50'
+                                  : 'border-gray-300'
+                              }`}
+                              placeholder="email@exemple.com"
+                            />
+                            {contact.emailTouched && contact.email && !validateEmail(contact.email) && (
+                              <p className="text-red-500 text-xs mt-1">Email invalide</p>
+                            )}
+                          </div>
+                          
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Téléphone</label>
+                            <input
+                              type="tel"
+                              value={contact.phone}
+                              onChange={(e) => updateContact(contact.id, 'phone', e.target.value)}
+                              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                              placeholder="06 12 34 56 78"
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="flex gap-3 mt-6">
+                      <button
+                        onClick={addContact}
+                        className="flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-lg hover:bg-indigo-200 transition-colors text-sm font-medium"
+                      >
+                        <PlusIcon />
+                        Ajouter un proche
+                      </button>
+                      
+                      <button
+                        onClick={saveContacts}
+                        className="flex-1 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition-colors font-medium shadow-md hover:shadow-lg"
+                      >
+                        Enregistrer tous les contacts
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Leaderboard */}
+                {showLeaderboard && (
+                  <div className="mb-8 bg-gradient-to-br from-amber-50 to-yellow-50 rounded-lg p-6 border-2 border-amber-200">
+                    <div className="flex items-center gap-3 mb-4">
+                      <TrophyIcon size={28} />
+                      <h2 className="text-2xl font-semibold text-gray-800">Top Contributeurs</h2>
+                    </div>
+                    <p className="text-sm text-gray-600 mb-4">10 points par contact | +15 points si profil complet (email + tél)</p>
+                    
+                    <div className="space-y-3">
+                      {leaderboard.slice(0, 10).map((contributor, index) => (
+                        <div key={contributor.email} className="bg-white rounded-lg p-4 shadow-sm flex items-center justify-between">
+                          <div className="flex items-center gap-4">
+                            <div className={`text-2xl font-bold ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : index === 2 ? 'text-amber-700' : 'text-gray-400'}`}>
+                              {index + 1}
+                            </div>
+                            <div>
+                              <p className="font-medium text-gray-800">{contributor.email}</p>
+                              <p className="text-xs text-gray-500">{contributor.contactsAdded} contact{contributor.contactsAdded > 1 ? 's' : ''} • {contributor.completeProfiles} complet{contributor.completeProfiles > 1 ? 's' : ''}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-xl font-bold text-indigo-600">{contributor.points}</p>
+                            <p className="text-xs text-gray-500">points</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Liste des contacts - Simplifiée pour l'HTML */}
+                {showList && (
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h2 className="text-2xl font-semibold text-gray-800">
+                        Liste des contacts ({filteredContacts.length})
+                      </h2>
+                      <div className="relative">
+                        <div className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+                          <SearchIcon />
+                        </div>
+                        <input
+                          type="text"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
+                          placeholder="Rechercher..."
+                          className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="bg-white rounded-lg shadow overflow-hidden">
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead className="bg-gray-50 border-b-2 border-gray-200">
+                            <tr>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nom de jeune fille</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Téléphone</th>
+                              {currentUserEmail && (
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">💜</th>
+                              )}
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Complétude</th>
+                            </tr>
+                          </thead>
+                          <tbody className="bg-white divide-y divide-gray-200">
+                            {filteredContacts.map((contact) => {
+                              const isRevealed = revealedContacts.has(contact.id);
+                              const isComplete = contact.email && contact.phone;
+                              
+                              return (
+                                <tr key={contact.id} className="hover:bg-gray-50">
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2">
+                                      <span className="font-medium text-gray-900">{contact.firstName} {contact.lastName}</span>
+                                      {isComplete && <StarIcon filled={true} />}
+                                    </div>
+                                  </td>
+                                  
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <span className="text-sm text-gray-600">{contact.maidenName || '-'}</span>
+                                  </td>
+                                  
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                      {contact.email ? (
+                                        <>
+                                          <MailIcon className={contact.emailVerified ? "text-green-500" : "text-gray-400"} />
+                                          {editingContact === contact.id && editingField === 'email' ? (
+                                            <input
+                                              type="email"
+                                              defaultValue={contact.email}
+                                              onBlur={(e) => {
+                                                updateSavedContact(contact.id, 'email', e.target.value);
+                                                setEditingContact(null);
+                                                setEditingField(null);
+                                              }}
+                                              className="border rounded px-2 py-1 text-sm w-full"
+                                              autoFocus
+                                            />
+                                          ) : (
+                                            <>
+                                              <span className="text-sm text-gray-900">
+                                                {isAdmin && isRevealed ? contact.email : maskEmail(contact.email)}
+                                              </span>
+                                              {isAdmin && (
+                                                <>
+                                                  <button 
+                                                    onClick={() => toggleReveal(contact.id)} 
+                                                    className="text-gray-400 hover:text-indigo-600"
+                                                  >
+                                                    {isRevealed ? <LockIcon size={14} /> : <UnlockIcon size={14} />}
+                                                  </button>
+                                                  <button 
+                                                    onClick={() => { setEditingContact(contact.id); setEditingField('email'); }} 
+                                                    className="text-gray-400 hover:text-indigo-600"
+                                                  >
+                                                    <Edit2Icon />
+                                                  </button>
+                                                </>
+                                              )}
+                                            </>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <MailIcon className="text-gray-300 cursor-pointer hover:text-indigo-500" 
+                                            onClick={async () => {
+                                              const contributor = await identifyUser();
+                                              if (!contributor) return;
+                                              
+                                              const email = prompt('Ajouter un email pour ' + contact.firstName + ' ' + contact.lastName + ' :');
+                                              if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                                                await updateSavedContact(contact.id, 'email', email, contributor);
+                                              } else if (email) {
+                                                alert('Email invalide');
+                                              }
+                                            }}
+                                          />
+                                          <span className="text-sm text-gray-400 italic cursor-pointer hover:text-indigo-600"
+                                            onClick={async () => {
+                                              const contributor = await identifyUser();
+                                              if (!contributor) return;
+                                              
+                                              const email = prompt('Ajouter un email pour ' + contact.firstName + ' ' + contact.lastName + ' :');
+                                              if (email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                                                await updateSavedContact(contact.id, 'email', email, contributor);
+                                              } else if (email) {
+                                                alert('Email invalide');
+                                              }
+                                            }}
+                                          >
+                                            Cliquez pour ajouter
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                  
+                                  <td className="px-6 py-4">
+                                    <div className="flex items-center gap-2">
+                                      {contact.phone ? (
+                                        <>
+                                          <PhoneIcon className="text-gray-400" />
+                                          {editingContact === contact.id && editingField === 'phone' ? (
+                                            <input
+                                              type="tel"
+                                              defaultValue={contact.phone}
+                                              onBlur={(e) => {
+                                                updateSavedContact(contact.id, 'phone', e.target.value);
+                                                setEditingContact(null);
+                                                setEditingField(null);
+                                              }}
+                                              className="border rounded px-2 py-1 text-sm w-full"
+                                              autoFocus
+                                            />
+                                          ) : (
+                                            <>
+                                              <span className="text-sm text-gray-900">
+                                                {isAdmin && isRevealed ? contact.phone : maskPhone(contact.phone)}
+                                              </span>
+                                              {isAdmin && (
+                                                <>
+                                                  <button 
+                                                    onClick={() => toggleReveal(contact.id)} 
+                                                    className="text-gray-400 hover:text-indigo-600"
+                                                  >
+                                                    {isRevealed ? <LockIcon size={14} /> : <UnlockIcon size={14} />}
+                                                  </button>
+                                                  <button 
+                                                    onClick={() => { setEditingContact(contact.id); setEditingField('phone'); }} 
+                                                    className="text-gray-400 hover:text-indigo-600"
+                                                  >
+                                                    <Edit2Icon />
+                                                  </button>
+                                                </>
+                                              )}
+                                            </>
+                                          )}
+                                        </>
+                                      ) : (
+                                        <>
+                                          <PhoneIcon className="text-gray-300 cursor-pointer hover:text-indigo-500" 
+                                            onClick={async () => {
+                                              const contributor = await identifyUser();
+                                              if (!contributor) return;
+                                              
+                                              const phone = prompt('Ajouter un téléphone pour ' + contact.firstName + ' ' + contact.lastName + ' :');
+                                              if (phone) {
+                                                await updateSavedContact(contact.id, 'phone', phone, contributor);
+                                              }
+                                            }}
+                                          />
+                                          <span className="text-sm text-gray-400 italic cursor-pointer hover:text-indigo-600"
+                                            onClick={async () => {
+                                              const contributor = await identifyUser();
+                                              if (!contributor) return;
+                                              
+                                              const phone = prompt('Ajouter un téléphone pour ' + contact.firstName + ' ' + contact.lastName + ' :');
+                                              if (phone) {
+                                                await updateSavedContact(contact.id, 'phone', phone, contributor);
+                                              }
+                                            }}
+                                          >
+                                            Cliquez pour ajouter
+                                          </span>
+                                        </>
+                                      )}
+                                    </div>
+                                  </td>
+                                  
+                                  {/* Colonne "J'ai hâte de te revoir" - visible seulement si identifié */}
+                                  {currentUserEmail && (
+                                    <td className="px-6 py-4 whitespace-nowrap">
+                                      <div className="flex items-center gap-2">
+                                        {contact.likesCount > 0 && (
+                                          <span className="text-sm text-pink-600 font-medium">
+                                            💜 {contact.likesCount}
+                                          </span>
+                                        )}
+                                        <button
+                                          onClick={() => handleLike(contact.id)}
+                                          className="text-gray-400 hover:text-pink-500 transition-colors p-1 hover:scale-110 transform"
+                                          title="J'ai hâte de te revoir !"
+                                        >
+                                          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                                          </svg>
+                                        </button>
+                                      </div>
+                                    </td>
+                                  )}
+                                  
+                                  <td className="px-6 py-4 whitespace-nowrap">
+                                    <div className="flex items-center gap-2">
+                                      <div className="w-full bg-gray-200 rounded-full h-2 max-w-[100px]">
+                                        <div
+                                          className={`h-2 rounded-full ${isComplete ? 'bg-green-500' : contact.email || contact.phone ? 'bg-yellow-500' : 'bg-red-500'}`}
+                                          style={{ width: isComplete ? '100%' : (contact.email || contact.phone ? '50%' : '0%') }}
+                                        ></div>
+                                      </div>
+                                      <span className="text-xs text-gray-600">
+                                        {isComplete ? '100%' : (contact.email || contact.phone ? '50%' : '0%')}
+                                      </span>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer RGPD */}
+            <div className="mt-8 text-center text-sm text-gray-600 bg-white rounded-lg p-6 shadow">
+              <p className="mb-2">
+                <strong>Protection des données personnelles (RGPD)</strong>
+              </p>
+              <p className="mb-2">
+                Vos données sont utilisées uniquement pour l'organisation des retrouvailles EA 1996. 
+                Vous disposez d'un droit d'accès, de rectification et de suppression.
+              </p>
+              <p>
+                Contact : <a href="mailto:orga@ea1996.fr" className="text-indigo-600 hover:underline">orga@ea1996.fr</a>
+              </p>
+            </div>
+          </div>
+
+          {/* Modal Admin */}
+          {showAdminModal && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+              <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+                <h3 className="text-xl font-semibold mb-4">Accès Administrateur</h3>
+                <input
+                  type="password"
+                  value={adminPassword}
+                  onChange={(e) => setAdminPassword(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                  placeholder="Mot de passe"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent mb-4"
+                  autoFocus
+                />
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => { setShowAdminModal(false); setAdminPassword(''); }}
+                    className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    Annuler
+                  </button>
+                  <button
+                    onClick={handleAdminLogin}
+                    className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                  >
+                    Connexion
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Badge flottant pour toggle mode rétro */}
+          <div 
+            className="retro-toggle-badge"
+            onClick={toggleRetroMode}
+          >
+            {isRetroMode ? '🚀 Revenir en 2026' : '💾 Revenir en 1996?'}
+          </div>
+        </div>
+      );
+    }
+
+    // Render l'application
+    ReactDOM.render(<ContactForm />, document.getElementById('root'));
+  </script>
+</body>
+</html>

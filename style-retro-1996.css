@@ -1,0 +1,231 @@
+/* 🕹️ Style Rétro années 90 - École Alsacienne 1996 */
+
+body.retro-mode {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive;
+}
+
+body.retro-mode * {
+  font-family: 'Comic Sans MS', 'Chalkboard SE', 'Comic Neue', cursive !important;
+}
+
+/* Container principal */
+body.retro-mode .max-w-7xl {
+  background: #ffd700;
+  border: 5px ridge #ff1493;
+  box-shadow: 0 0 20px rgba(255, 20, 147, 0.5);
+}
+
+/* Header */
+body.retro-mode header {
+  background: linear-gradient(to right, #ff1493, #00ffff);
+  border-bottom: 5px groove #ffd700;
+  animation: rainbow-border 2s infinite;
+}
+
+@keyframes rainbow-border {
+  0% { border-color: #ff1493; }
+  25% { border-color: #00ffff; }
+  50% { border-color: #ffd700; }
+  75% { border-color: #7fff00; }
+  100% { border-color: #ff1493; }
+}
+
+/* Titre principal */
+body.retro-mode h1 {
+  color: #ff1493;
+  text-shadow: 3px 3px #00ffff, 6px 6px #ffd700;
+  animation: blink 1.5s infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+/* Boutons */
+body.retro-mode button,
+body.retro-mode a.bg-indigo-600,
+body.retro-mode a.bg-green-600 {
+  background: linear-gradient(45deg, #ff1493, #00ffff) !important;
+  border: 3px outset #ffd700 !important;
+  color: #000 !important;
+  font-weight: bold;
+  text-shadow: 1px 1px #fff;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.3);
+  transition: all 0.2s;
+}
+
+body.retro-mode button:hover,
+body.retro-mode a.bg-indigo-600:hover,
+body.retro-mode a.bg-green-600:hover {
+  transform: translate(2px, 2px);
+  box-shadow: 3px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+body.retro-mode button:active {
+  border-style: inset !important;
+  transform: translate(4px, 4px);
+  box-shadow: none;
+}
+
+/* Cards / Sections */
+body.retro-mode .bg-white,
+body.retro-mode .bg-gray-50 {
+  background: linear-gradient(135deg, #fff 0%, #f0f0f0 50%, #fff 100%) !important;
+  border: 3px ridge #ff1493 !important;
+  box-shadow: 5px 5px 0 rgba(0, 0, 0, 0.2) !important;
+}
+
+/* Inputs */
+body.retro-mode input,
+body.retro-mode textarea,
+body.retro-mode select {
+  border: 3px inset #7fff00 !important;
+  background: #ffffcc !important;
+  color: #000 !important;
+  font-weight: bold;
+}
+
+body.retro-mode input:focus,
+body.retro-mode textarea:focus {
+  outline: 3px solid #ff1493 !important;
+  background: #ffff99 !important;
+}
+
+/* Table */
+body.retro-mode table {
+  border: 5px double #ff1493 !important;
+}
+
+body.retro-mode th {
+  background: linear-gradient(to bottom, #ff1493, #ff69b4) !important;
+  color: #fff !important;
+  text-shadow: 2px 2px #000;
+  border: 2px outset #ffd700 !important;
+}
+
+body.retro-mode td {
+  border: 1px dotted #ff1493 !important;
+  background: #fff !important;
+}
+
+body.retro-mode tr:nth-child(even) td {
+  background: #ffffcc !important;
+}
+
+body.retro-mode tr:hover td {
+  background: #ff69b4 !important;
+  color: #fff !important;
+}
+
+/* Badges / Pills */
+body.retro-mode .bg-indigo-100,
+body.retro-mode .bg-yellow-100,
+body.retro-mode .bg-green-100 {
+  background: linear-gradient(45deg, #ffd700, #00ffff) !important;
+  border: 2px solid #ff1493 !important;
+  color: #000 !important;
+  font-weight: bold;
+}
+
+/* Icons */
+body.retro-mode svg {
+  filter: drop-shadow(2px 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+/* Scrollbar */
+body.retro-mode ::-webkit-scrollbar {
+  width: 16px;
+  background: #ffd700;
+  border: 2px solid #ff1493;
+}
+
+body.retro-mode ::-webkit-scrollbar-thumb {
+  background: linear-gradient(45deg, #ff1493, #00ffff);
+  border: 2px outset #ffd700;
+}
+
+body.retro-mode ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(45deg, #00ffff, #ff1493);
+}
+
+/* Liens */
+body.retro-mode a {
+  color: #0000ff !important;
+  text-decoration: underline;
+}
+
+body.retro-mode a:visited {
+  color: #800080 !important;
+}
+
+body.retro-mode a:hover {
+  color: #ff0000 !important;
+  background: #ffff00;
+}
+
+/* GIF animé simulé */
+@keyframes rotate-colors {
+  0% { color: #ff1493; }
+  25% { color: #00ffff; }
+  50% { color: #ffd700; }
+  75% { color: #7fff00; }
+  100% { color: #ff1493; }
+}
+
+body.retro-mode h2,
+body.retro-mode h3 {
+  animation: rotate-colors 3s infinite;
+  text-shadow: 2px 2px #000;
+}
+
+/* Effet "Under Construction" */
+body.retro-mode::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background: repeating-linear-gradient(
+    45deg,
+    #ffd700,
+    #ffd700 20px,
+    #000 20px,
+    #000 40px
+  );
+  z-index: 9999;
+  animation: construction-move 1s linear infinite;
+}
+
+@keyframes construction-move {
+  0% { background-position: 0 0; }
+  100% { background-position: 40px 0; }
+}
+
+/* Badge "NEW!" clignotant */
+body.retro-mode .retro-toggle-badge {
+  animation: flash 0.5s infinite alternate;
+}
+
+@keyframes flash {
+  0% {
+    background: #ff0000;
+    transform: scale(1);
+  }
+  100% {
+    background: #ffff00;
+    transform: scale(1.1);
+  }
+}
+
+/* Étoiles clignotantes */
+body.retro-mode .text-yellow-400 {
+  animation: twinkle 1s infinite;
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
