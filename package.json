@@ -1,0 +1,8 @@
+{
+  "name": "ea1996-reunion",
+  "version": "1.0.0",
+  "description": "Site des retrouvailles EA 1996",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
