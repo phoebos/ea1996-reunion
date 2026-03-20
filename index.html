@@ -260,7 +260,34 @@
         }
       }
 
-      const TARGET_ALUMNI = 200;
+// Fonction pour envoyer un email de bienvenue
+async function sendWelcomeEmail(firstName, lastName, email) {
+  if (!email || !email.includes('@')) return; // Skip si pas d'email valide
+  
+  try {
+    const response = await fetch('/.netlify/functions/send-welcome-email', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        firstName,
+        lastName,
+        email
+      })
+    });
+    
+    if (!response.ok) {
+      console.error('Erreur envoi email:', await response.text());
+    }
+  } catch (error) {
+    console.error('Erreur envoi email:', error);
+    // On ne bloque pas l'expérience utilisateur si l'email échoue
+  }
+}
+
+      
+const TARGET_ALUMNI = 200;
       const currentAlumni = savedContacts.length;
       const alumniProgress = (currentAlumni / TARGET_ALUMNI) * 100;
 
@@ -508,7 +535,12 @@
           }));
           
           await supabaseRequest('contacts', 'POST', contactsToInsert);
-          
+          // Envoyer les emails de bienvenue
+          for (const contact of contactsToInsert) {
+            if (contact.email) {
+              await sendWelcomeEmail(contact.first_name, contact.last_name, contact.email);
+            }
+          }
           // Recharger les contacts
           await loadContacts();
           
