@@ -1,10 +1,7 @@
 // Netlify Function pour envoyer un email de bienvenue
-// À placer dans : netlify/functions/send-welcome-email.js
-
 const fetch = require('node-fetch');
 
 exports.handler = async (event) => {
-  // Vérifier que c'est une requête POST
   if (event.httpMethod !== 'POST') {
     return {
       statusCode: 405,
@@ -15,7 +12,6 @@ exports.handler = async (event) => {
   try {
     const { email, firstName, lastName } = JSON.parse(event.body);
 
-    // Validation
     if (!email || !firstName || !lastName) {
       return {
         statusCode: 400,
@@ -23,7 +19,6 @@ exports.handler = async (event) => {
       };
     }
 
-    // Envoyer l'email via Resend
     const response = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -41,6 +36,16 @@ exports.handler = async (event) => {
             <p>Tes coordonnées ont été ajoutées à l'annuaire des retrouvailles <strong>EA 1996 - 30 ans du Bac</strong> 🎉</p>
             
             <p>Nous organisons une grande soirée de retrouvailles pour célébrer nos 30 ans (juin ou septembre 2026).</p>
+            
+            <!-- CTA WhatsApp principal -->
+            <div style="background: linear-gradient(135deg, #25D366, #128C7E); padding: 25px; border-radius: 12px; margin: 30px 0; text-align: center;">
+              <h2 style="color: white; margin: 0 0 15px 0; font-size: 24px;">📱 Rejoins le groupe WhatsApp !</h2>
+              <p style="color: white; margin: 0 0 20px 0; font-size: 14px;">Reste connecté avec la promo • Organisation • Souvenirs</p>
+              <a href="https://chat.whatsapp.com/Fxlg8G6gA5gEOtLAA6c8ah" 
+                 style="background: white; color: #25D366; padding: 15px 40px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 18px;">
+                🚀 REJOINDRE MAINTENANT
+              </a>
+            </div>
             
             <div style="background: #F3F4F6; padding: 20px; border-radius: 8px; margin: 20px 0;">
               <h3 style="margin-top: 0;">📅 Planning :</h3>
