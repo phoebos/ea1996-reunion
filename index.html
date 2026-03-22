@@ -718,6 +718,23 @@ const TARGET_ALUMNI = 200;
           ));
 
           // Animation de succès
+// Envoyer la notification email si la personne a un email
+          if (contact.email) {
+            try {
+              await fetch('/.netlify/functions/send-like-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  firstName: contact.firstName,
+                  email: contact.email,
+                  likesCount: newCount
+                })
+              });
+            } catch (error) {
+              console.error('Erreur notification like:', error);
+            }
+          }
+
           alert("💜 Votre message a été envoyé !");
         } catch (error) {
           console.error('Erreur lors du like:', error);
