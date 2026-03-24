@@ -28,52 +28,7 @@ exports.handler = async (event) => {
       body: JSON.stringify({
         from: 'EA 1996 Retrouvailles <onboarding@resend.dev>',
         to: email,
-        subject: 'EA 1996 - Quelqu\'un a hâte de te revoir ! 💜',
-        html: `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-            <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #9333ea, #7c3aed); border-radius: 12px; margin-bottom: 30px;">
-              <div style="font-size: 64px; margin-bottom: 20px;">💜</div>
-              <h1 style="color: white; margin: 0 0 10px 0;">Bonjour ${firstName} !</h1>
-              <p style="color: white; font-size: 20px; margin: 0;">Quelqu'un a hâte de te
-
-cd ~/Desktop/ea1996-reunion
-
-cat > netlify/functions/send-like-notification.js << 'EOF'
-# (tout le code que je t'ai donné)
-cd ~/Desktop/ea1996-reunion
-
-cat > netlify/functions/send-like-notification.js << 'EOF'
-// Netlify Function pour envoyer une notification de like anonyme
-const fetch = require('node-fetch');
-
-exports.handler = async (event) => {
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method not allowed' })
-    };
-  }
-
-  try {
-    const { email, firstName, likesCount } = JSON.parse(event.body);
-
-    if (!email || !firstName || likesCount === undefined) {
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Missing required fields' })
-      };
-    }
-
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${process.env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        from: 'EA 1996 Retrouvailles <onboarding@resend.dev>',
-        to: email,
-        subject: 'EA 1996 - Quelqu\'un a hâte de te revoir ! 💜',
+        subject: 'EA 1996 - Quelqu un a hâte de te revoir ! 💜',
         html: `
           <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
             <div style="text-align: center; padding: 40px 20px; background: linear-gradient(135deg, #9333ea, #7c3aed); border-radius: 12px; margin-bottom: 30px;">
