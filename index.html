@@ -1455,7 +1455,7 @@ const TARGET_ALUMNI = 200;
                                   {currentUserEmail && (
                                     <td className="px-6 py-4 whitespace-nowrap">
                                       <div className="flex items-center gap-2">
-                                        {contact.likesCount > 0 && (
+                                        {contact.likesCount > 0 && `${contact.firstName} ${contact.lastName}` === currentUserEmail && (
                                           <span className="text-sm text-pink-600 font-medium">
                                             💜 {contact.likesCount}
                                           </span>
