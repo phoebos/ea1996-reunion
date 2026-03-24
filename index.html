@@ -555,6 +555,57 @@ const TARGET_ALUMNI = 200;
         }
       }
 
+async function handleAddCoordinates() {
+        // Identifier l'utilisateur d'abord
+        const userName = await identifyUser();
+        if (!userName) return; // Annulé
+        
+        if (userName === 'Non identifié') {
+          // Continue normalement
+          setShowForm(true);
+          return;
+        }
+        
+        // Vérifier si la personne existe dans la base
+        const normalizedName = userName.split(' ');
+        const userFirstName = normalizedName[0];
+        const userLastName = normalizedName.slice(1).join(' ');
+        
+        const existingUser = savedContacts.find(c => 
+          normalizeString(c.firstName) === normalizeString(userFirstName) &&
+          normalizeString(c.lastName) === normalizeString(userLastName)
+        );
+        
+        if (existingUser) {
+          // L'utilisateur existe déjà
+          const choice = confirm(
+            `✅ Vous êtes déjà inscrit !\n\n` +
+            `Cliquez OK pour ajouter d'autres camarades\n` +
+            `Cliquez Annuler pour mettre à jour vos coordonnées`
+          );
+          
+          if (choice) {
+            // Ajouter des camarades
+            setShowForm(true);
+          } else {
+            // Mettre à jour ses coordonnées
+            alert('Recherchez votre nom dans la liste ci-dessous et cliquez sur les icônes ✏️ pour modifier.');
+            setShowList(true);
+            setTimeout(() => {
+              const searchInput = document.querySelector('input[placeholder="Rechercher..."]');
+              if (searchInput) {
+                searchInput.value = userName;
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+              }
+            }, 100);
+          }
+        } else {
+          // Nouvel utilisateur
+          setShowForm(true);
+        }
+      }
+
+
       async function identifyUser() {
         // Si déjà identifié dans cette session, retourner le nom
         if (currentUserEmail) {
@@ -931,7 +982,7 @@ const TARGET_ALUMNI = 200;
                 {/* Boutons secondaires */}
                 <div className="flex flex-wrap gap-3 mb-6">
                   <button
-                    onClick={() => setShowForm(!showForm)}
+                    onClick={handleAddCoordinates}
                     className="flex items-center gap-2 px-5 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
                   >
                     <PlusIcon />
