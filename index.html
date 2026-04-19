@@ -43,6 +43,18 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
+function calculateCompleteness(contact) {
+        let total = 0;
+        let filled = 0;
+        total += 2;
+        filled += 2;
+        if (contact.email) { total++; filled++; } else total++;
+        if (contact.phone) { total++; filled++; } else total++;
+        if (contact.maidenName) { total++; filled++; } else total++;
+        return Math.round((filled / total) * 100);
+      }
+
+
 // Faits marquants de 1996
     const facts1996 = [
       { icon: '🎬', text: 'Trainspotting au cinéma' },
