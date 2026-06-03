@@ -1095,11 +1095,108 @@ async function handleAddCoordinates() {
                   )}
                 </div>
 
+                {/* Annonce date de la réunion - GROS ENCART */}
+                <div style={{
+                  background: 'linear-gradient(to right, #7c3aed, #4f46e5)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '32px 24px',
+                  marginBottom: '24px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                  textAlign: 'center'
+                }}>
+                  <h2 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '16px' }}>
+                    🎉 Save the Date ! 🎉
+                  </h2>
+                  <div style={{
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '12px'
+                  }}>
+                    <p style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px' }}>
+                      Jeudi 25 juin 2026
+                    </p>
+                    <p style={{ fontSize: '20px' }}>
+                      À partir de 19h
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '18px', marginTop: '12px' }}>
+                    📍 École Alsacienne
+                  </p>
+                </div>
+
                 {/* Message d'introduction */}
                 <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
                   <p className="text-gray-700 leading-relaxed">
-                    Pour les 30 ans du Bac de 1996 de l'École Alsacienne, nous nous proposons d'organiser une soirée de retrouvailles en juin ou en septembre 2026. Pour être le plus nombreux possible, nous vous demandons de nous aider à renseigner au mieux notre promo avec vos coordonnées (mail + tel) ET ceux dont vous êtes les plus proches.
+                    Pour les 30 ans du Bac de 1996 de l'École Alsacienne, nous organisons une soirée de retrouvailles le <strong>jeudi 25 juin 2026 à partir de 19h</strong> à l'école. Pour être le plus nombreux possible, nous vous demandons de nous aider à renseigner au mieux notre promo avec vos coordonnées (mail + tel) ET ceux dont vous êtes les plus proches.
                   </p>
+                </div>
+
+                {/* Section Réservation OnParticipe */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '32px 24px',
+                  marginBottom: '24px',
+                  textAlign: 'center'
+                }}>
+                  <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '12px' }}>
+                    🎫 Je réserve ma place
+                  </h3>
+                  <p style={{ fontSize: '16px', marginBottom: '20px', opacity: 0.95 }}>
+                    Cotisation : <strong>25€</strong><br/>
+                    <span style={{ fontSize: '14px' }}>(Buffet Elior + photographe pro)</span>
+                  </p>
+                  <a 
+                    href="https://www.onparticipe.fr/b/IHAxPCAj"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      backgroundColor: 'white',
+                      color: '#667eea',
+                      padding: '12px 32px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                    onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                  >
+                    Réserver sur OnParticipe →
+                  </a>
+                  <p style={{ fontSize: '13px', marginTop: '16px', opacity: 0.85 }}>
+                    Clôture des réservations : <strong>15 juin 2026</strong>
+                  </p>
+                </div>
+
+                {/* Section Confirmés */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    ✨ Qui vient ? Retrouve tes camarades !
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Les confirmés sont visibles directement sur <a href="https://www.onparticipe.fr/b/IHAxPCAj" target="_blank" rel="noopener noreferrer" className="text-purple-600 font-semibold hover:underline">la cagnotte OnParticipe</a>.
+                  </p>
+                  <div style={{
+                    backgroundColor: 'white',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    fontSize: '14px',
+                    color: '#666',
+                    minHeight: '60px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    📋 Vérifiez OnParticipe pour voir la liste en temps réel
+                  </div>
                 </div>
 
                 {/* Bannière d'identification */}
@@ -1567,13 +1664,16 @@ async function handleAddCoordinates() {
       </span>
     )}
     <button
-      onClick={() => handleLike(contact.id)}
-      className={`transition-colors p-1 hover:scale-110 transform ${
-        currentUserEmail && contact.likedBy?.includes(currentUserEmail)
-          ? 'text-pink-500'
-          : 'text-gray-400 hover:text-pink-500'
+      onClick={() => contact.email ? handleLike(contact.id) : null}
+      disabled={!contact.email}
+      className={`transition-colors p-1 transform ${
+        !contact.email 
+          ? 'text-gray-300 cursor-not-allowed' 
+          : currentUserEmail && contact.likedBy?.includes(currentUserEmail)
+          ? 'text-pink-500 hover:scale-110'
+          : 'text-gray-400 hover:text-pink-500 hover:scale-110'
       }`}
-      title="J'ai hâte de te revoir !"
+      title={!contact.email ? "Cette personne n'a pas d'email" : "J'ai hâte de te revoir !"}
     >
       <svg width="20" height="20" viewBox="0 0 24 24" fill={currentUserEmail && contact.likedBy?.includes(currentUserEmail) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -1604,6 +1704,19 @@ async function handleAddCoordinates() {
                           </tbody>
                         </table>
 
+                        {/* Message aucun résultat - Desktop */}
+                        {filteredContacts.length === 0 && (
+                          <div className="hidden md:block text-center py-12 bg-gray-50 rounded-lg mt-4">
+                            <p className="text-gray-600 mb-4">Aucun résultat trouvé</p>
+                            <button
+                              onClick={handleAddCoordinates}
+                              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                            >
+                              Ajouter des coordonnées
+                            </button>
+                          </div>
+                        )}
+
 
 {/* Version mobile - cartes */}
                     <div className="md:hidden space-y-4">
@@ -1625,13 +1738,16 @@ async function handleAddCoordinates() {
                                 </span>
                               )}
                               <button
-                                onClick={() => handleLike(contact.id)}
-                                className={`transition-colors p-1 hover:scale-110 transform ${
-                                  currentUserEmail && contact.likedBy?.includes(currentUserEmail)
-                                    ? 'text-pink-500'
-                                    : 'text-gray-400 hover:text-pink-500'
+                                onClick={() => contact.email ? handleLike(contact.id) : null}
+                                disabled={!contact.email}
+                                className={`transition-colors p-1 transform ${
+                                  !contact.email 
+                                    ? 'text-gray-300 cursor-not-allowed' 
+                                    : currentUserEmail && contact.likedBy?.includes(currentUserEmail)
+                                    ? 'text-pink-500 hover:scale-110'
+                                    : 'text-gray-400 hover:text-pink-500 hover:scale-110'
                                 }`}
-                                title="J'ai hâte de te revoir !"
+                                title={!contact.email ? "Cette personne n'a pas d'email" : "J'ai hâte de te revoir !"}
                               >
                                 <svg width="24" height="24" viewBox="0 0 24 24" fill={currentUserEmail && contact.likedBy?.includes(currentUserEmail) ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2">
                                   <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -1673,6 +1789,19 @@ async function handleAddCoordinates() {
                         </div>
                       ))}
                     </div>
+
+                    {/* Message aucun résultat - Mobile */}
+                    {filteredContacts.length === 0 && (
+                      <div className="md:hidden text-center py-12 bg-gray-50 rounded-lg mt-4">
+                        <p className="text-gray-600 mb-4">Aucun résultat trouvé</p>
+                        <button
+                          onClick={handleAddCoordinates}
+                          className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                        >
+                          Ajouter des coordonnées
+                        </button>
+                      </div>
+                    )}
 
 
                       </div>
