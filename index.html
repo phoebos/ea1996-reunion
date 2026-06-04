@@ -43,48 +43,11 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // ===========================================================
-    // LISTE DES INSCRITS À LA SOIRÉE (source : OnParticipe)
-    // Pour ajouter un nouvel inscrit : copie une ligne et modifie
-    // le prénom et le nom. Garde bien les accolades et la virgule.
-    // ===========================================================
-    const inscritsSoiree = [
-      { firstName: 'Adrien', lastName: 'Ducousset' },
-      { firstName: 'Mélanie', lastName: 'Miere' },
-      { firstName: 'Carole', lastName: 'Cheysson' },
-      { firstName: 'Lily', lastName: 'Anavi' },
-      { firstName: 'Maya', lastName: 'Murillo' },
-      { firstName: 'Anaïs', lastName: 'Tabarly' },
-      { firstName: 'Francois', lastName: 'Meyrueix' },
-      { firstName: 'Marie', lastName: 'Leon' },
-      { firstName: 'Christelle', lastName: 'Benichou' },
-      { firstName: 'Ara', lastName: 'Starck' },
-      { firstName: 'Marie', lastName: "d'Origny" },
-      { firstName: 'Félicie', lastName: 'Dutard' },
-      { firstName: 'Adrien', lastName: 'Campagnac' },
-      { firstName: 'Anael', lastName: 'Pigeat' },
-      { firstName: 'Lauraine', lastName: 'Heftler' },
-      { firstName: 'Adrien', lastName: 'Magdelaine' }
-    ];
-
-    // Normalisation pour comparer les noms (minuscules, sans accents ni espaces)
-    function normalizeNom(str) {
-      return (str || '')
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "")
-        .replace(/[\s'’-]+/g, '');
-    }
-
     // Un contact est-il inscrit à la soirée ?
-    // Vrai si sa case "inscrit" est cochée dans Supabase (étape 2),
-    // ou s'il figure dans la liste inscritsSoiree ci-dessus.
+    // Source unique : la colonne "registered" dans Supabase,
+    // pilotée par la case à cocher en mode admin.
     function estInscrit(contact) {
-      if (contact.registered === true) return true;
-      return inscritsSoiree.some(function(i) {
-        return normalizeNom(i.firstName) === normalizeNom(contact.firstName) &&
-               normalizeNom(i.lastName) === normalizeNom(contact.lastName);
-      });
+      return contact.registered === true;
     }
 
 function calculateCompleteness(contact) {
@@ -1187,21 +1150,10 @@ async function handleAddCoordinates() {
                 {(() => {
                   const objectifSoiree = 60;
                   const inscritsContacts = savedContacts.filter(estInscrit);
-                  // Inscrits de la liste OnParticipe pas encore dans la base
-                  const horsBase = inscritsSoiree.filter(function(i) {
-                    return !savedContacts.some(function(c) {
-                      return normalizeNom(c.firstName) === normalizeNom(i.firstName) &&
-                             normalizeNom(c.lastName) === normalizeNom(i.lastName);
-                    });
-                  });
-                  // Liste unifiee {firstName, lastName}
-                  const tousInscrits = inscritsContacts.map(function(c) {
-                    return { firstName: c.firstName, lastName: c.lastName };
-                  }).concat(horsBase);
-                  const totalInscrits = tousInscrits.length;
+                  const totalInscrits = inscritsContacts.length;
                   const pct = Math.min(100, Math.round((totalInscrits / objectifSoiree) * 100));
                   // Labels : prénom + nom complet
-                  const labels = tousInscrits.map(function(p) {
+                  const labels = inscritsContacts.map(function(p) {
                     return (p.firstName + ' ' + (p.lastName || '')).trim();
                   });
                   // Ordre aléatoire (Fisher-Yates)
