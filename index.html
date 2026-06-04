@@ -43,6 +43,50 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
+    // ===========================================================
+    // LISTE DES INSCRITS À LA SOIRÉE (source : OnParticipe)
+    // Pour ajouter un nouvel inscrit : copie une ligne et modifie
+    // le prénom et le nom. Garde bien les accolades et la virgule.
+    // ===========================================================
+    const inscritsSoiree = [
+      { firstName: 'Adrien', lastName: 'Ducousset' },
+      { firstName: 'Mélanie', lastName: 'Miere' },
+      { firstName: 'Carole', lastName: 'Cheysson' },
+      { firstName: 'Lily', lastName: 'Anavi' },
+      { firstName: 'Maya', lastName: 'Murillo' },
+      { firstName: 'Anaïs', lastName: 'Tabarly' },
+      { firstName: 'Francois', lastName: 'Meyrueix' },
+      { firstName: 'Marie', lastName: 'Leon' },
+      { firstName: 'Christelle', lastName: 'Benichou' },
+      { firstName: 'Ara', lastName: 'Starck' },
+      { firstName: 'Marie', lastName: "d'Origny" },
+      { firstName: 'Félicie', lastName: 'Dutard' },
+      { firstName: 'Adrien', lastName: 'Campagnac' },
+      { firstName: 'Anael', lastName: 'Pigeat' },
+      { firstName: 'Lauraine', lastName: 'Heftler' },
+      { firstName: 'Adrien', lastName: 'Magdelaine' }
+    ];
+
+    // Normalisation pour comparer les noms (minuscules, sans accents ni espaces)
+    function normalizeNom(str) {
+      return (str || '')
+        .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[\s'’-]+/g, '');
+    }
+
+    // Un contact est-il inscrit à la soirée ?
+    // Vrai si sa case "inscrit" est cochée dans Supabase (étape 2),
+    // ou s'il figure dans la liste inscritsSoiree ci-dessus.
+    function estInscrit(contact) {
+      if (contact.registered === true) return true;
+      return inscritsSoiree.some(function(i) {
+        return normalizeNom(i.firstName) === normalizeNom(contact.firstName) &&
+               normalizeNom(i.lastName) === normalizeNom(contact.lastName);
+      });
+    }
+
 function calculateCompleteness(contact) {
         let total = 0;
         let filled = 0;
@@ -1116,14 +1160,72 @@ async function handleAddCoordinates() {
                   </a>
                 </div>
 
-                {/* Section Confirmés */}
-                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-6">
-                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
-                    ✨ Qui vient ? Retrouve tes camarades !
-                  </h3>
-                  <p className="text-gray-600 text-sm mb-4">
-                    Les confirmés sont visibles directement sur <a href="https://www.onparticipe.fr/b/IHAxPCAj" target="_blank" rel="noopener noreferrer" className="text-purple-600 font-semibold hover:underline">la cagnotte OnParticipe</a>.
-                  </p>
+                {/* Section Confirmés - compteur, jauge et prénoms */}
+                {(() => {
+                  const objectifSoiree = 60;
+                  const inscritsContacts = savedContacts.filter(estInscrit);
+                  // Inscrits de la liste OnParticipe pas encore dans la base
+                  const horsBase = inscritsSoiree.filter(function(i) {
+                    return !savedContacts.some(function(c) {
+                      return normalizeNom(c.firstName) === normalizeNom(i.firstName) &&
+                             normalizeNom(c.lastName) === normalizeNom(i.lastName);
+                    });
+                  });
+                  // Liste unifiee {firstName, lastName}
+                  const tousInscrits = inscritsContacts.map(function(c) {
+                    return { firstName: c.firstName, lastName: c.lastName };
+                  }).concat(horsBase);
+                  const totalInscrits = tousInscrits.length;
+                  const pct = Math.min(100, Math.round((totalInscrits / objectifSoiree) * 100));
+                  // Labels : prénom + nom complet
+                  const labels = tousInscrits.map(function(p) {
+                    return (p.firstName + ' ' + (p.lastName || '')).trim();
+                  });
+                  // Ordre aléatoire (Fisher-Yates)
+                  for (var i = labels.length - 1; i > 0; i--) {
+                    var j = Math.floor(Math.random() * (i + 1));
+                    var tmp = labels[i]; labels[i] = labels[j]; labels[j] = tmp;
+                  }
+                  const bilanTexte = `🎉 Déjà ${totalInscrits} camarades inscrits à la soirée des 30 ans du Bac 1996 !
+
+Jeudi 25 juin, dès 19h, à l'École alsacienne.
+Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
+                  return (
+                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-6">
+                      <div className="flex items-center justify-between mb-3">
+                        <h3 className="text-lg font-semibold text-gray-800">
+                          🎉 {totalInscrits} camarades ont déjà réservé
+                        </h3>
+                        {isAdmin && (
+                          <button
+                            onClick={() => { navigator.clipboard.writeText(bilanTexte); alert('Bilan copié ! Tu peux le coller dans WhatsApp.'); }}
+                            className="text-xs px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all whitespace-nowrap"
+                          >
+                            Copier pour WhatsApp
+                          </button>
+                        )}
+                      </div>
+                      <div className="w-full bg-white rounded-full h-3 mb-2 overflow-hidden border border-purple-100">
+                        <div className="h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all" style={{ width: pct + '%' }}></div>
+                      </div>
+                      <p className="text-gray-500 text-xs mb-4">{totalInscrits} inscrits sur un objectif de {objectifSoiree} - on remplit la salle !</p>
+                      {labels.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {labels.map(function(nom, idx) {
+                            return (
+                              <span key={idx} className="inline-block px-3 py-1 bg-white border border-purple-200 rounded-full text-sm text-gray-700">
+                                {nom}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* ancien placeholder masqué */}
+                <div style={{ display: 'none' }}>
                   <div style={{
                     backgroundColor: 'white',
                     borderRadius: '8px',
@@ -1430,7 +1532,7 @@ async function handleAddCoordinates() {
                               const isComplete = contact.email && contact.phone;
                               
                               return (
-                                <tr key={contact.id} className="hover:bg-gray-50">
+                                <tr key={contact.id} className={estInscrit(contact) ? "bg-green-50 hover:bg-green-100 border-l-2 border-green-400" : "hover:bg-gray-50"}>
                                   <td className="px-6 py-4 whitespace-nowrap">
                                                               {contact.likesCount > 0 && `${contact.firstName} ${contact.lastName}` === currentUserEmail && (
                                 <span className="text-sm text-pink-600 font-medium">
@@ -1439,6 +1541,7 @@ async function handleAddCoordinates() {
                               )}
     <div className="flex items-center gap-2">
                                       <span className="font-medium text-gray-900">{contact.firstName} {contact.lastName}</span>
+                                      {estInscrit(contact) && <span title="Inscrit·e à la soirée">🎉</span>}
                                       {isComplete && <StarIcon filled={true} />}
                                     </div>
                                   </td>
@@ -1661,11 +1764,11 @@ async function handleAddCoordinates() {
 {/* Version mobile - cartes */}
                     <div className="md:hidden space-y-4">
                       {filteredContacts.map((contact) => (
-                        <div key={contact.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
+                        <div key={contact.id} className={estInscrit(contact) ? "bg-green-50 border-l-2 border-green-400 border-t border-r border-b border-green-200 rounded-lg p-4 shadow-sm" : "bg-white border border-gray-200 rounded-lg p-4 shadow-sm"}>
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
                               <h3 className="font-semibold text-lg text-gray-900">
-                                {contact.firstName} {contact.lastName}
+                                {contact.firstName} {contact.lastName} {estInscrit(contact) && <span title="Inscrit·e à la soirée">🎉</span>}
                               </h3>
                               {contact.maidenName && (
                                 <p className="text-sm text-gray-500">Née {contact.maidenName}</p>
