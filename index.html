@@ -340,7 +340,9 @@ function calculateCompleteness(contact) {
             emailVerified: contact.email_verified || false,
             addedBy: contact.added_by || '',
             likesCount: contact.likes_count || 0,
-            likedBy: contact.liked_by || []
+            likedBy: contact.liked_by || [],
+            registered: contact.registered || false,
+            isGuest: contact.is_guest || false
           }));
           
           setSavedContacts(formattedContacts);
@@ -400,6 +402,27 @@ const TARGET_ALUMNI = 200;
         if (progress < 33) return 'bg-red-500';
         if (progress < 66) return 'bg-yellow-500';
         return 'bg-green-500';
+      };
+
+      // Basculer le statut "inscrit à la soirée" (admin only) - écrit dans Supabase
+      const toggleRegistered = async (contactId) => {
+        const contact = savedContacts.find(c => c.id === contactId);
+        if (!contact) return;
+        const nouveau = !contact.registered;
+        // Mise à jour optimiste de l'affichage
+        setSavedContacts(savedContacts.map(c =>
+          c.id === contactId ? { ...c, registered: nouveau } : c
+        ));
+        try {
+          await supabaseRequest(`contacts?id=eq.${contactId}`, 'PATCH', { registered: nouveau });
+        } catch (error) {
+          console.error('Erreur mise à jour inscription:', error);
+          alert("La mise à jour de l'inscription a échoué. Réessaie.");
+          // Annuler en cas d'échec
+          setSavedContacts(savedContacts.map(c =>
+            c.id === contactId ? { ...c, registered: !nouveau } : c
+          ));
+        }
       };
 
       const handleAdminLogin = () => {
@@ -1540,6 +1563,15 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
                                 </span>
                               )}
     <div className="flex items-center gap-2">
+                                      {isAdmin && (
+                                        <input
+                                          type="checkbox"
+                                          checked={contact.registered === true}
+                                          onChange={() => toggleRegistered(contact.id)}
+                                          title="Cocher si la personne a réservé sa place"
+                                          className="w-4 h-4 accent-green-600 cursor-pointer"
+                                        />
+                                      )}
                                       <span className="font-medium text-gray-900">{contact.firstName} {contact.lastName}</span>
                                       {estInscrit(contact) && <span title="Inscrit·e à la soirée">🎉</span>}
                                       {isComplete && <StarIcon filled={true} />}
@@ -1767,8 +1799,17 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
                         <div key={contact.id} className={estInscrit(contact) ? "bg-green-50 border-l-2 border-green-400 border-t border-r border-b border-green-200 rounded-lg p-4 shadow-sm" : "bg-white border border-gray-200 rounded-lg p-4 shadow-sm"}>
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-lg text-gray-900">
-                                {contact.firstName} {contact.lastName} {estInscrit(contact) && <span title="Inscrit·e à la soirée">🎉</span>}
+                              <h3 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
+                                {isAdmin && (
+                                  <input
+                                    type="checkbox"
+                                    checked={contact.registered === true}
+                                    onChange={() => toggleRegistered(contact.id)}
+                                    title="Cocher si la personne a réservé sa place"
+                                    className="w-4 h-4 accent-green-600 cursor-pointer"
+                                  />
+                                )}
+                                <span>{contact.firstName} {contact.lastName} {estInscrit(contact) && <span title="Inscrit·e à la soirée">🎉</span>}</span>
                               </h3>
                               {contact.maidenName && (
                                 <p className="text-sm text-gray-500">Née {contact.maidenName}</p>
