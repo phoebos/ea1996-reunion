@@ -892,7 +892,8 @@ async function handleAddCoordinates() {
       const maskEmail = (email) => {
         if (!email) return '';
         const [local, domain] = email.split('@');
-        if (local.length <= 2) return email;
+        if (!domain) return email;
+        if (local.length <= 2) return (local[0] || '') + '***@' + domain;
         return local[0] + '***' + local[local.length - 1] + '@' + domain;
       };
 
