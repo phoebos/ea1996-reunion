@@ -560,73 +560,76 @@ const TARGET_ALUMNI = 200;
       };
 
       async function saveContacts() {
-        const invalidContacts = contacts.filter(c => 
-          !c.firstName.trim() || !c.lastName.trim() || 
+        const invalidContacts = contacts.filter(c =>
+          !c.firstName.trim() || !c.lastName.trim() ||
           (c.emailTouched && c.email && !validateEmail(c.email))
         );
-        
+
         if (invalidContacts.length > 0) {
           alert('Veuillez remplir au moins le prénom et le nom pour chaque contact, et vérifier les emails invalides.');
           return;
         }
-        
-        // Récupérer le premier contact (celui qui ajoute)
-        const firstContact = contacts[0];
-        const userFirstName = firstContact.firstName.trim();
-        const userLastName = firstContact.lastName.trim();
-        
+
+        const addedBy = currentUserEmail || 'Anonyme';
+
         try {
-          // Vérifier si l'utilisateur existe déjà dans la base
-          const existingUser = savedContacts.find(c => 
-            normalizeString(c.firstName) === normalizeString(userFirstName) &&
-            normalizeString(c.lastName) === normalizeString(userLastName)
-          );
-          
-          if (existingUser && contacts.length === 1) {
-            // L'utilisateur essaie de s'ajouter lui-même mais existe déjà
-            alert('❌ Vous êtes déjà inscrit dans la liste.\n\nVérifiez vos coordonnées ci-dessous.');
-            setShowForm(false);
-            // Scroll vers le tableau
-            setTimeout(() => {
-              const searchInput = document.querySelector('input[placeholder="Rechercher..."]');
-              if (searchInput) {
-                searchInput.value = userFirstName + ' ' + userLastName;
-                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
+          const toInsert = [];
+          const updates = [];
+          const welcomeToSend = [];
+
+          for (const c of contacts) {
+            const fn = c.firstName.trim();
+            const ln = c.lastName.trim();
+            // La personne existe-t-elle déjà (par nom) ?
+            const existing = savedContacts.find(s =>
+              normalizeString(s.firstName) === normalizeString(fn) &&
+              normalizeString(s.lastName) === normalizeString(ln)
+            );
+            if (existing) {
+              // Compléter uniquement les champs vides, sans écraser l'existant
+              const fields = {};
+              if (!existing.email && c.email && c.email.trim()) fields.email = c.email.trim();
+              if (!existing.phone && c.phone && c.phone.trim()) fields.phone = c.phone.trim();
+              if (!existing.maidenName && c.maidenName && c.maidenName.trim()) fields.maiden_name = c.maidenName.trim();
+              if (Object.keys(fields).length > 0) {
+                updates.push({ id: existing.id, fields: fields });
+                if (fields.email) welcomeToSend.push({ first: fn, last: ln, email: fields.email });
               }
-            }, 100);
-            return;
-          }
-          
-          // Utiliser le nom complet de l'utilisateur pour le leaderboard
-          const addedBy = `${userFirstName} ${userLastName}`;
-          setCurrentUserEmail(addedBy); // On stocke le nom au lieu de l'email
-          
-          // Insérer les nouveaux contacts dans Supabase
-          const contactsToInsert = contacts.map(c => ({
-            first_name: c.firstName.trim(),
-            last_name: c.lastName.trim(),
-            maiden_name: c.maidenName?.trim() || null,
-            email: c.email?.trim() || null,
-            phone: c.phone?.trim() || null,
-            email_verified: false,
-            added_by: addedBy
-          }));
-          
-          await supabaseRequest('contacts', 'POST', contactsToInsert);
-          // Envoyer les emails de bienvenue
-          for (const contact of contactsToInsert) {
-            if (contact.email) {
-              await sendWelcomeEmail(contact.first_name, contact.last_name, contact.email);
+            } else {
+              // Nouvelle personne : insertion
+              toInsert.push({
+                first_name: fn,
+                last_name: ln,
+                maiden_name: (c.maidenName && c.maidenName.trim()) || null,
+                email: (c.email && c.email.trim()) || null,
+                phone: (c.phone && c.phone.trim()) || null,
+                email_verified: false,
+                added_by: addedBy
+              });
+              if (c.email && c.email.trim()) welcomeToSend.push({ first: fn, last: ln, email: c.email.trim() });
             }
           }
-          // Recharger les contacts
+
+          if (toInsert.length > 0) {
+            await supabaseRequest('contacts', 'POST', toInsert);
+          }
+          for (const u of updates) {
+            await supabaseRequest(`contacts?id=eq.${u.id}`, 'PATCH', u.fields);
+          }
+          for (const w of welcomeToSend) {
+            await sendWelcomeEmail(w.first, w.last, w.email);
+          }
+
           await loadContacts();
-          
-          // Réinitialiser le formulaire
           setContacts([{ id: 1, firstName: '', lastName: '', maidenName: '', email: '', phone: '', emailTouched: false }]);
           setShowForm(false);
-          
-          alert('✅ Contacts ajoutés avec succès !');
+
+          const parts = [];
+          if (toInsert.length) parts.push(`${toInsert.length} ajouté(s)`);
+          if (updates.length) parts.push(`${updates.length} mis à jour`);
+          const inchanges = contacts.length - toInsert.length - updates.length;
+          if (inchanges > 0) parts.push(`${inchanges} déjà à jour`);
+          alert('✅ ' + (parts.length ? parts.join(', ') : 'Aucune modification') + '.');
         } catch (error) {
           console.error('Erreur lors de l\'enregistrement:', error);
           alert('Erreur lors de l\'enregistrement des contacts');
