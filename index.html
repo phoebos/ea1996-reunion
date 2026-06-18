@@ -43,13 +43,6 @@
   <script type="text/babel">
     const { useState, useEffect } = React;
 
-    // Un contact est-il inscrit à la soirée ?
-    // Source unique : la colonne "registered" dans Supabase,
-    // pilotée par la case à cocher en mode admin.
-    function estInscrit(contact) {
-      return contact.registered === true;
-    }
-
 function calculateCompleteness(contact) {
         let total = 0;
         let filled = 0;
@@ -303,9 +296,7 @@ function calculateCompleteness(contact) {
             emailVerified: contact.email_verified || false,
             addedBy: contact.added_by || '',
             likesCount: contact.likes_count || 0,
-            likedBy: contact.liked_by || [],
-            registered: contact.registered || false,
-            isGuest: contact.is_guest || false
+            likedBy: contact.liked_by || []
           }));
           
           setSavedContacts(formattedContacts);
@@ -365,27 +356,6 @@ const TARGET_ALUMNI = 200;
         if (progress < 33) return 'bg-red-500';
         if (progress < 66) return 'bg-yellow-500';
         return 'bg-green-500';
-      };
-
-      // Basculer le statut "inscrit à la soirée" (admin only) - écrit dans Supabase
-      const toggleRegistered = async (contactId) => {
-        const contact = savedContacts.find(c => c.id === contactId);
-        if (!contact) return;
-        const nouveau = !contact.registered;
-        // Mise à jour optimiste de l'affichage
-        setSavedContacts(savedContacts.map(c =>
-          c.id === contactId ? { ...c, registered: nouveau } : c
-        ));
-        try {
-          await supabaseRequest(`contacts?id=eq.${contactId}`, 'PATCH', { registered: nouveau });
-        } catch (error) {
-          console.error('Erreur mise à jour inscription:', error);
-          alert("La mise à jour de l'inscription a échoué. Réessaie.");
-          // Annuler en cas d'échec
-          setSavedContacts(savedContacts.map(c =>
-            c.id === contactId ? { ...c, registered: !nouveau } : c
-          ));
-        }
       };
 
       const handleAdminLogin = () => {
@@ -560,76 +530,73 @@ const TARGET_ALUMNI = 200;
       };
 
       async function saveContacts() {
-        const invalidContacts = contacts.filter(c =>
-          !c.firstName.trim() || !c.lastName.trim() ||
+        const invalidContacts = contacts.filter(c => 
+          !c.firstName.trim() || !c.lastName.trim() || 
           (c.emailTouched && c.email && !validateEmail(c.email))
         );
-
+        
         if (invalidContacts.length > 0) {
           alert('Veuillez remplir au moins le prénom et le nom pour chaque contact, et vérifier les emails invalides.');
           return;
         }
-
-        const addedBy = currentUserEmail || 'Anonyme';
-
+        
+        // Récupérer le premier contact (celui qui ajoute)
+        const firstContact = contacts[0];
+        const userFirstName = firstContact.firstName.trim();
+        const userLastName = firstContact.lastName.trim();
+        
         try {
-          const toInsert = [];
-          const updates = [];
-          const welcomeToSend = [];
-
-          for (const c of contacts) {
-            const fn = c.firstName.trim();
-            const ln = c.lastName.trim();
-            // La personne existe-t-elle déjà (par nom) ?
-            const existing = savedContacts.find(s =>
-              normalizeString(s.firstName) === normalizeString(fn) &&
-              normalizeString(s.lastName) === normalizeString(ln)
-            );
-            if (existing) {
-              // Compléter uniquement les champs vides, sans écraser l'existant
-              const fields = {};
-              if (!existing.email && c.email && c.email.trim()) fields.email = c.email.trim();
-              if (!existing.phone && c.phone && c.phone.trim()) fields.phone = c.phone.trim();
-              if (!existing.maidenName && c.maidenName && c.maidenName.trim()) fields.maiden_name = c.maidenName.trim();
-              if (Object.keys(fields).length > 0) {
-                updates.push({ id: existing.id, fields: fields });
-                if (fields.email) welcomeToSend.push({ first: fn, last: ln, email: fields.email });
+          // Vérifier si l'utilisateur existe déjà dans la base
+          const existingUser = savedContacts.find(c => 
+            normalizeString(c.firstName) === normalizeString(userFirstName) &&
+            normalizeString(c.lastName) === normalizeString(userLastName)
+          );
+          
+          if (existingUser && contacts.length === 1) {
+            // L'utilisateur essaie de s'ajouter lui-même mais existe déjà
+            alert('❌ Vous êtes déjà inscrit dans la liste.\n\nVérifiez vos coordonnées ci-dessous.');
+            setShowForm(false);
+            // Scroll vers le tableau
+            setTimeout(() => {
+              const searchInput = document.querySelector('input[placeholder="Rechercher..."]');
+              if (searchInput) {
+                searchInput.value = userFirstName + ' ' + userLastName;
+                searchInput.dispatchEvent(new Event('input', { bubbles: true }));
               }
-            } else {
-              // Nouvelle personne : insertion
-              toInsert.push({
-                first_name: fn,
-                last_name: ln,
-                maiden_name: (c.maidenName && c.maidenName.trim()) || null,
-                email: (c.email && c.email.trim()) || null,
-                phone: (c.phone && c.phone.trim()) || null,
-                email_verified: false,
-                added_by: addedBy
-              });
-              if (c.email && c.email.trim()) welcomeToSend.push({ first: fn, last: ln, email: c.email.trim() });
+            }, 100);
+            return;
+          }
+          
+          // Utiliser le nom complet de l'utilisateur pour le leaderboard
+          const addedBy = `${userFirstName} ${userLastName}`;
+          setCurrentUserEmail(addedBy); // On stocke le nom au lieu de l'email
+          
+          // Insérer les nouveaux contacts dans Supabase
+          const contactsToInsert = contacts.map(c => ({
+            first_name: c.firstName.trim(),
+            last_name: c.lastName.trim(),
+            maiden_name: c.maidenName?.trim() || null,
+            email: c.email?.trim() || null,
+            phone: c.phone?.trim() || null,
+            email_verified: false,
+            added_by: addedBy
+          }));
+          
+          await supabaseRequest('contacts', 'POST', contactsToInsert);
+          // Envoyer les emails de bienvenue
+          for (const contact of contactsToInsert) {
+            if (contact.email) {
+              await sendWelcomeEmail(contact.first_name, contact.last_name, contact.email);
             }
           }
-
-          if (toInsert.length > 0) {
-            await supabaseRequest('contacts', 'POST', toInsert);
-          }
-          for (const u of updates) {
-            await supabaseRequest(`contacts?id=eq.${u.id}`, 'PATCH', u.fields);
-          }
-          for (const w of welcomeToSend) {
-            await sendWelcomeEmail(w.first, w.last, w.email);
-          }
-
+          // Recharger les contacts
           await loadContacts();
+          
+          // Réinitialiser le formulaire
           setContacts([{ id: 1, firstName: '', lastName: '', maidenName: '', email: '', phone: '', emailTouched: false }]);
           setShowForm(false);
-
-          const parts = [];
-          if (toInsert.length) parts.push(`${toInsert.length} ajouté(s)`);
-          if (updates.length) parts.push(`${updates.length} mis à jour`);
-          const inchanges = contacts.length - toInsert.length - updates.length;
-          if (inchanges > 0) parts.push(`${inchanges} déjà à jour`);
-          alert('✅ ' + (parts.length ? parts.join(', ') : 'Aucune modification') + '.');
+          
+          alert('✅ Contacts ajoutés avec succès !');
         } catch (error) {
           console.error('Erreur lors de l\'enregistrement:', error);
           alert('Erreur lors de l\'enregistrement des contacts');
@@ -892,8 +859,7 @@ async function handleAddCoordinates() {
       const maskEmail = (email) => {
         if (!email) return '';
         const [local, domain] = email.split('@');
-        if (!domain) return email;
-        if (local.length <= 2) return (local[0] || '') + '***@' + domain;
+        if (local.length <= 2) return email;
         return local[0] + '***' + local[local.length - 1] + '@' + domain;
       };
 
@@ -1032,39 +998,22 @@ async function handleAddCoordinates() {
                 <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.3)]"></div>
               </div>
 
-              <div className="p-6">
-                {/* Invitation + CTA principal reservation */}
-                <div className="mb-6 bg-white border border-gray-200 rounded-2xl p-6 sm:p-8 shadow-lg">
-                  <p className="text-gray-700 leading-relaxed mb-4">Chers camarades,</p>
-                  <p className="text-gray-700 leading-relaxed mb-4">
-                    Le buffet dînatoire est prêt, les boissons sont au frais, la musique commence déjà à se faire entendre : il ne manque plus que vous pour faire de ces retrouvailles un heureux moment.
-                  </p>
-                  <p className="text-gray-700 leading-relaxed mb-4">
-                    Trente ans, ou presque, après notre Bac 1996, et peut-être au moment où certains de nos enfants passent le leur, il est temps de revenir sur les lieux du crime - avec un peu moins de cheveux, un peu plus de souvenirs, et probablement une meilleure tolérance au champagne tiède.
-                  </p>
-                  <div className="bg-indigo-50 border-l-4 border-indigo-500 p-4 my-5 rounded">
-                    <p className="text-gray-800 font-semibold mb-1">Jeudi 25 juin 2026, de 19h à environ 23h</p>
-                    <p className="text-gray-700">École alsacienne</p>
-                    <p className="text-gray-600 text-sm">Entrée par le 109 rue Notre-Dame-des-Champs, 75006 Paris</p>
-                  </div>
-                  <div className="text-center my-6">
+                {/* GROS CTA Réservation EN LIGNE - OBLIGATOIRE */}
+                <div className="mb-6 bg-gradient-to-r from-purple-600 to-indigo-600 rounded-2xl p-6 shadow-2xl border-4 border-purple-700 transform hover:scale-[1.02] transition-all">
+                  <div className="text-center text-white">
+                    <h2 className="text-3xl sm:text-4xl font-bold mb-3">✓ Réserve ta place en ligne</h2>
+                    <p className="text-lg sm:text-xl mb-4 font-semibold text-purple-100">
+                      Aucune vente sur place • Réserve obligatoirement avant le 15 juin
+                    </p>
                     <a
                       href="https://www.onparticipe.fr/b/IHAxPCAj"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-block px-8 py-4 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-xl hover:from-purple-700 hover:to-indigo-700 transition-all shadow-lg hover:shadow-xl text-xl font-bold transform hover:scale-105"
+                      className="inline-block px-8 py-4 bg-white text-purple-600 rounded-xl hover:bg-purple-50 transition-all shadow-lg hover:shadow-xl text-xl font-bold transform hover:scale-105"
                     >
-                      Je réserve ma place (30€)
+                      Je réserve ma place (25€)
                     </a>
-                    <p className="text-gray-500 text-sm mt-3">Participation aux frais : 30€ - Réservation avant le 15 juin</p>
                   </div>
-                  <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                    <strong>Petite astuce au moment du paiement :</strong> pensez à modifier la contribution volontaire proposée par OnParticipe. Nous avons choisi cette solution parce qu'elle est gratuite, mais le site ajoute par défaut une contribution "volontaire" qui l'est un peu moins qu'elle n'en a l'air.
-                  </p>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    Merci à tous de nous aider à faciliter l'organisation. À très vite,<br/>
-                    Les organisateurs des retrouvailles Bac 1996
-                  </p>
                 </div>
 
                 {/* Boutons secondaires */}
@@ -1092,6 +1041,15 @@ async function handleAddCoordinates() {
                     <TrophyIcon />
                     Leaderboard
                   </button>
+
+                  <a
+                    href="https://www.onparticipe.fr/b/IHAxPCAj"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 px-5 py-2.5 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-all shadow-md hover:shadow-lg text-sm font-medium whitespace-nowrap"
+                  >
+                    👥 Voir les confirmés
+                  </a>
 
                   {isAdmin ? (
                     <>
@@ -1135,79 +1093,95 @@ async function handleAddCoordinates() {
                   )}
                 </div>
 
-                {/* Lien WhatsApp discret */}
-                <div className="text-center mb-6">
-                  <a
-                    href="https://chat.whatsapp.com/Fxlg8G6gA5gEOtLAA6c8ah"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-2 text-green-600 hover:text-green-700 text-sm font-medium hover:underline"
-                  >
-                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413Z"/>
-                    </svg>
-                    Rejoindre le groupe WhatsApp de la promo
-                  </a>
+                {/* Annonce date de la réunion - GROS ENCART */}
+                <div style={{
+                  background: 'linear-gradient(to right, #7c3aed, #4f46e5)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '32px 24px',
+                  marginBottom: '24px',
+                  boxShadow: '0 10px 25px rgba(0,0,0,0.15)',
+                  textAlign: 'center'
+                }}>
+                  <h2 style={{ fontSize: '28px', fontWeight: 'bold', marginBottom: '16px' }}>
+                    🎉 Save the Date ! 🎉
+                  </h2>
+                  <div style={{
+                    backgroundColor: 'rgba(255,255,255,0.15)',
+                    borderRadius: '8px',
+                    padding: '16px',
+                    marginBottom: '12px'
+                  }}>
+                    <p style={{ fontSize: '24px', fontWeight: '600', marginBottom: '8px' }}>
+                      Jeudi 25 juin 2026
+                    </p>
+                    <p style={{ fontSize: '20px' }}>
+                      À partir de 19h
+                    </p>
+                  </div>
+                  <p style={{ fontSize: '18px', marginTop: '12px' }}>
+                    📍 École Alsacienne
+                  </p>
                 </div>
 
-                {/* Section Confirmés - compteur, jauge et prénoms */}
-                {(() => {
-                  const objectifSoiree = 60;
-                  // Invités hors promo (conjoints, proches) : comptés mais non listés dans l'annuaire.
-                  // Ajuste ce nombre quand de nouveaux invités confirment.
-                  const invitesHorsPromo = 2;
-                  const inscritsContacts = savedContacts.filter(estInscrit);
-                  const totalInscrits = inscritsContacts.length + invitesHorsPromo;
-                  const pct = Math.min(100, Math.round((totalInscrits / objectifSoiree) * 100));
-                  // Labels : prénom + nom complet
-                  const labels = inscritsContacts.map(function(p) {
-                    return (p.firstName + ' ' + (p.lastName || '')).trim();
-                  });
-                  // Ordre aléatoire (Fisher-Yates)
-                  for (var i = labels.length - 1; i > 0; i--) {
-                    var j = Math.floor(Math.random() * (i + 1));
-                    var tmp = labels[i]; labels[i] = labels[j]; labels[j] = tmp;
-                  }
-                  const bilanTexte = `🎉 Déjà ${totalInscrits} camarades inscrits à la soirée des 30 ans du Bac 1996 !
+                {/* Message d'introduction */}
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-4 mb-6">
+                  <p className="text-gray-700 leading-relaxed">
+                    Pour les 30 ans du Bac de 1996 de l'École Alsacienne, nous organisons une soirée de retrouvailles le <strong>jeudi 25 juin 2026 à partir de 19h</strong> à l'école. Pour être le plus nombreux possible, nous vous demandons de nous aider à renseigner au mieux notre promo avec vos coordonnées (mail + tel) ET ceux dont vous êtes les plus proches.
+                  </p>
+                </div>
 
-Jeudi 25 juin, dès 19h, à l'École alsacienne.
-Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
-                  return (
-                    <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-6">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="text-lg font-semibold text-gray-800">
-                          🎉 {totalInscrits} camarades ont déjà réservé
-                        </h3>
-                        {isAdmin && (
-                          <button
-                            onClick={() => { navigator.clipboard.writeText(bilanTexte); alert('Bilan copié ! Tu peux le coller dans WhatsApp.'); }}
-                            className="text-xs px-3 py-1.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-all whitespace-nowrap"
-                          >
-                            Copier pour WhatsApp
-                          </button>
-                        )}
-                      </div>
-                      <div className="w-full bg-white rounded-full h-3 mb-2 overflow-hidden border border-purple-100">
-                        <div className="h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all" style={{ width: pct + '%' }}></div>
-                      </div>
-                      <p className="text-gray-500 text-xs mb-4">{totalInscrits} inscrits sur un objectif de {objectifSoiree} - on remplit la salle !</p>
-                      {labels.length > 0 && (
-                        <div className="flex flex-wrap gap-2">
-                          {labels.map(function(nom, idx) {
-                            return (
-                              <span key={idx} className="inline-block px-3 py-1 bg-white border border-purple-200 rounded-full text-sm text-gray-700">
-                                {nom}
-                              </span>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
+                {/* Section Réservation OnParticipe */}
+                <div style={{
+                  background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+                  color: 'white',
+                  borderRadius: '12px',
+                  padding: '32px 24px',
+                  marginBottom: '24px',
+                  textAlign: 'center'
+                }}>
+                  <h3 style={{ fontSize: '24px', fontWeight: 'bold', marginBottom: '12px' }}>
+                    🎫 Je réserve ma place
+                  </h3>
+                  <p style={{ fontSize: '16px', marginBottom: '20px', opacity: 0.95 }}>
+                    Cotisation : <strong>25€</strong><br/>
+                    <span style={{ fontSize: '14px' }}>(Buffet Elior + photographe pro)</span>
+                  </p>
+                  <a 
+                    href="https://www.onparticipe.fr/b/IHAxPCAj"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      display: 'inline-block',
+                      backgroundColor: 'white',
+                      color: '#667eea',
+                      padding: '12px 32px',
+                      borderRadius: '8px',
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      textDecoration: 'none',
+                      cursor: 'pointer',
+                      transition: 'transform 0.2s',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+                    }}
+                    onMouseOver={(e) => e.target.style.transform = 'scale(1.05)'}
+                    onMouseOut={(e) => e.target.style.transform = 'scale(1)'}
+                  >
+                    Réserver sur OnParticipe →
+                  </a>
+                  <p style={{ fontSize: '13px', marginTop: '16px', opacity: 0.85 }}>
+                    Clôture des réservations : <strong>15 juin 2026</strong>
+                  </p>
+                </div>
 
-                {/* ancien placeholder masqué */}
-                <div style={{ display: 'none' }}>
+                {/* Section Confirmés */}
+                <div className="bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-6 mb-6">
+                  <h3 className="text-lg font-semibold text-gray-800 mb-4">
+                    ✨ Qui vient ? Retrouve tes camarades !
+                  </h3>
+                  <p className="text-gray-600 text-sm mb-4">
+                    Les confirmés sont visibles directement sur <a href="https://www.onparticipe.fr/b/IHAxPCAj" target="_blank" rel="noopener noreferrer" className="text-purple-600 font-semibold hover:underline">la cagnotte OnParticipe</a>.
+                  </p>
                   <div style={{
                     backgroundColor: 'white',
                     borderRadius: '8px',
@@ -1490,16 +1464,6 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
                       </div>
                     </div>
 
-                    {/* Légende des symboles */}
-                    <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-sm text-gray-600 mb-3 px-1">
-                      <span className="flex items-center gap-1.5">
-                        <StarIcon filled={true} /> coordonnées complètes
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        <span>🎉</span> a déjà pris sa place pour la soirée
-                      </span>
-                    </div>
-
                     <div className="bg-white rounded-lg shadow overflow-hidden">
                       <div className="overflow-x-auto">
                         <table className="hidden md:table w-full">
@@ -1524,7 +1488,7 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
                               const isComplete = contact.email && contact.phone;
                               
                               return (
-                                <tr key={contact.id} className={estInscrit(contact) ? "bg-green-50 hover:bg-green-100 border-l-2 border-green-400" : "hover:bg-gray-50"}>
+                                <tr key={contact.id} className="hover:bg-gray-50">
                                   <td className="px-6 py-4 whitespace-nowrap">
                                                               {contact.likesCount > 0 && `${contact.firstName} ${contact.lastName}` === currentUserEmail && (
                                 <span className="text-sm text-pink-600 font-medium">
@@ -1532,17 +1496,7 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
                                 </span>
                               )}
     <div className="flex items-center gap-2">
-                                      {isAdmin && (
-                                        <input
-                                          type="checkbox"
-                                          checked={contact.registered === true}
-                                          onChange={() => toggleRegistered(contact.id)}
-                                          title="Cocher si la personne a réservé sa place"
-                                          className="w-4 h-4 accent-green-600 cursor-pointer"
-                                        />
-                                      )}
                                       <span className="font-medium text-gray-900">{contact.firstName} {contact.lastName}</span>
-                                      {estInscrit(contact) && <span title="Inscrit·e à la soirée">🎉</span>}
                                       {isComplete && <StarIcon filled={true} />}
                                     </div>
                                   </td>
@@ -1765,20 +1719,11 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
 {/* Version mobile - cartes */}
                     <div className="md:hidden space-y-4">
                       {filteredContacts.map((contact) => (
-                        <div key={contact.id} className={estInscrit(contact) ? "bg-green-50 border-l-2 border-green-400 border-t border-r border-b border-green-200 rounded-lg p-4 shadow-sm" : "bg-white border border-gray-200 rounded-lg p-4 shadow-sm"}>
+                        <div key={contact.id} className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm">
                           <div className="flex justify-between items-start mb-3">
                             <div className="flex-1">
-                              <h3 className="font-semibold text-lg text-gray-900 flex items-center gap-2">
-                                {isAdmin && (
-                                  <input
-                                    type="checkbox"
-                                    checked={contact.registered === true}
-                                    onChange={() => toggleRegistered(contact.id)}
-                                    title="Cocher si la personne a réservé sa place"
-                                    className="w-4 h-4 accent-green-600 cursor-pointer"
-                                  />
-                                )}
-                                <span>{contact.firstName} {contact.lastName} {estInscrit(contact) && <span title="Inscrit·e à la soirée">🎉</span>}</span>
+                              <h3 className="font-semibold text-lg text-gray-900">
+                                {contact.firstName} {contact.lastName}
                               </h3>
                               {contact.maidenName && (
                                 <p className="text-sm text-gray-500">Née {contact.maidenName}</p>
@@ -1814,7 +1759,7 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
   <div className="flex items-center text-sm">
     <span className="text-gray-500 w-20">Email:</span>
     <span className="text-blue-600 break-all">
-      {isAdmin && revealedContacts.has(contact.id) ? contact.email : contact.email.replace(/(.{2})(.*)(@.*)/, '$1*****$3')}
+      {isAdmin && isRevealed ? contact.email : contact.email.replace(/(.{2})(.*)(@.*)/, '$1*****$3')}
     </span>
   </div>
                             )}
@@ -1824,7 +1769,7 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
                               <div className="flex items-center text-sm">
                                 <span className="text-gray-500 w-20">Tél:</span>
                                 <span className="text-blue-600">
-                                  {isAdmin && revealedContacts.has(contact.id) ? contact.phone : contact.phone.replace(/(\d{2})(\d+)(\d{2})/, '$1*****$3')}
+                                  {isAdmin && isRevealed ? contact.phone : contact.phone.replace(/(\d{2})(\d+)(\d{2})/, '$1*****$3')}
                                 </span>
                               </div>
                             )}
@@ -1857,10 +1802,10 @@ Réserve ta place (30€) : https://www.onparticipe.fr/b/IHAxPCAj`;
                     )}
 
 
-                      </div>
-                    </div>
                   </div>
-                )}
+                </div>
+              </div>
+            )}
               </div>
             </div>
 
