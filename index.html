@@ -1156,7 +1156,8 @@ async function handleAddCoordinates() {
                   const objectifSoiree = 60;
                   // Invités hors promo (conjoints, proches) : comptés mais non listés dans l'annuaire.
                   // Ajuste ce nombre quand de nouveaux invités confirment.
-                  const invitesHorsPromo = 2;
+                  // 3 = Adrien Campagnac (mari de Félicie Dutard) + Max-David Ghozlan (frère de Benjamin Ghozlan) + mari de Géraldine Veron
+                  const invitesHorsPromo = 3;
                   const inscritsContacts = savedContacts.filter(estInscrit);
                   const totalInscrits = inscritsContacts.length + invitesHorsPromo;
                   const pct = Math.min(100, Math.round((totalInscrits / objectifSoiree) * 100));
